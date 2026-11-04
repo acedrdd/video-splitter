@@ -164,7 +164,7 @@ async function engine(){
   const ff = new FFmpegWASM.FFmpeg();
   ff.on("progress", ({ progress }) => { if (onProg) onProg(progress); });
   const { toBlobURL } = FFmpegUtil, abs = p => new URL(p, location.href).href;
-  const get = (url, type) => local ? url : toBlobURL(url, type);
+  const get = (url, type) => toBlobURL(url, type);
   try {
     await ff.load({
       classWorkerURL: await get(local ? abs("vendor/814.ffmpeg.js") : CDN.lib + "814.ffmpeg.js", "text/javascript"),
