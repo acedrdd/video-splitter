@@ -157,7 +157,7 @@ $("file").onchange = async e => {
 async function engine(){
   if (ffmpeg) return ffmpeg;
   const V = "https://cdn.jsdelivr.net/npm/";
-  const CDN = { lib: V + "@ffmpeg/ffmpeg@0.12.10/dist/umd/", util: V + "@ffmpeg/util@0.12.1/dist/umd/index.js", core: V + "@ffmpeg/core@0.12.6/dist/umd/" };
+  const CDN = { lib: V + "@ffmpeg/ffmpeg@0.12.10/dist/umd/", util: V + "@ffmpeg/util@0.12.1/dist/umd/index.js", core: V + "@ffmpeg/core@0.12.6/dist/esm/" };
   let local = true;
   try { await loadScript("vendor/ffmpeg.js"); await loadScript("vendor/util.js"); }
   catch (e) { local = false; await loadScript(CDN.lib + "ffmpeg.js"); await loadScript(CDN.util); }
