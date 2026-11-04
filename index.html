@@ -157,23 +157,36 @@ $("file").onchange = async e => {
 async function engine(){
   if (ffmpeg) return ffmpeg;
   const V = "https://cdn.jsdelivr.net/npm/";
-  const CDN = { lib: V + "@ffmpeg/ffmpeg@0.12.10/dist/umd/", util: V + "@ffmpeg/util@0.12.1/dist/umd/index.js", core: V + "@ffmpeg/core@0.12.6/dist/esm/" };
-  let local = true;
+  const L = { lib: V + "@ffmpeg/ffmpeg@0.12.10/dist/umd/", util: V + "@ffmpeg/util@0.12.1/dist/umd/index.js", core: V + "@ffmpeg/core@0.12.6/dist/esm/" };
+  const abs = p => new URL(p, location.href).href;
   try { await loadScript("vendor/ffmpeg.js"); await loadScript("vendor/util.js"); }
-  catch (e) { local = false; await loadScript(CDN.lib + "ffmpeg.js"); await loadScript(CDN.util); }
-  const ff = new FFmpegWASM.FFmpeg();
-  ff.on("progress", ({ progress }) => { if (onProg) onProg(progress); });
-  const { toBlobURL } = FFmpegUtil, abs = p => new URL(p, location.href).href;
-  const get = (url, type) => toBlobURL(url, type);
-  try {
-    await ff.load({
-      classWorkerURL: await get(local ? abs("vendor/814.ffmpeg.js") : CDN.lib + "814.ffmpeg.js", "text/javascript"),
-      coreURL: await get(local ? abs("vendor/ffmpeg-core.js") : CDN.core + "ffmpeg-core.js", "text/javascript"),
-      wasmURL: await get(local ? abs("vendor/ffmpeg-core.wasm") : CDN.core + "ffmpeg-core.wasm", "application/wasm")
-    });
-  } catch (e) { try { ff.terminate(); } catch (_) {} throw e; }
-  ffmpeg = ff;
-  return ffmpeg;
+  catch (e) { await loadScript(L.lib + "ffmpeg.js"); await loadScript(L.util); }
+  const { toBlobURL } = FFmpegUtil;
+  const check = async (url, what) => {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(what + " not found (" + r.status + ")");
+    const t = r.headers.get("content-type") || "";
+    if (/html/i.test(t)) throw new Error(what + " came back as a web page, not a file");
+  };
+  const tries = [
+    { name: "local", lib: abs("vendor/814.ffmpeg.js"), js: abs("vendor/ffmpeg-core.js"), wasm: abs("vendor/ffmpeg-core.wasm") },
+    { name: "CDN", lib: L.lib + "814.ffmpeg.js", js: L.core + "ffmpeg-core.js", wasm: L.core + "ffmpeg-core.wasm" }
+  ];
+  const errs = [];
+  for (const t of tries) {
+    const ff = new FFmpegWASM.FFmpeg();
+    ff.on("progress", ({ progress }) => { if (onProg) onProg(progress); });
+    try {
+      await check(t.js, "ffmpeg-core.js"); await check(t.wasm, "ffmpeg-core.wasm"); await check(t.lib, "worker file");
+      await ff.load({
+        classWorkerURL: await toBlobURL(t.lib, "text/javascript"),
+        coreURL: await toBlobURL(t.js, "text/javascript"),
+        wasmURL: await toBlobURL(t.wasm, "application/wasm")
+      });
+      ffmpeg = ff; return ffmpeg;
+    } catch (e) { errs.push(t.name + ": " + (e.message || e)); try { ff.terminate(); } catch (_) {} }
+  }
+  throw new Error(errs.join(" | "));
 }
 
 /* Saving */
