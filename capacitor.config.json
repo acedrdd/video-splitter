@@ -1,0 +1,6 @@
+{
+  "appId": "com.videosplitter.app",
+  "appName": "Video Splitter",
+  "webDir": "www",
+  "server": { "androidScheme": "https" }
+}
