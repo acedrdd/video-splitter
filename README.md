@@ -41,7 +41,7 @@ Splitting is lossless (no re-encoding), so it is fast and keeps full quality. It
 ## Limits
 
 - Cuts snap to the nearest keyframe, so clips can be off by a second or two.
-- The video is loaded into memory, so files over about 1 GB may fail, especially on phones. For very large files, use ffmpeg in Termux or on a computer:
+- The video is read straight from storage and cut one clip at a time, so memory use stays low. Very large files or very low-RAM phones can still fail. In that case use ffmpeg in Termux or on a computer:
 
 ```
 ffmpeg -i input.mp4 -c copy -f segment -segment_time 1200 -reset_timestamps 1 clip_%03d.mp4

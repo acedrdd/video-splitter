@@ -80,7 +80,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 <div id="out"></div>
 <button class="main" id="all" hidden></button>
 
-<p class="note">Cuts are lossless, so they are fast and keep full quality. Each cut snaps to the nearest keyframe, so clips can be off by a second or two. Files over about 1 GB may run out of memory; use Termux for those.</p>
+<p class="note">Cuts are lossless, so they are fast and keep full quality. Each cut snaps to the nearest keyframe, so clips can be off by a second or two. The video is read straight from storage and cut one clip at a time, so large files should work.</p>
 </main>
 
 <script>
@@ -88,7 +88,7 @@ const $ = id => document.getElementById(id);
 const NATIVE = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
 const CDN_JS = "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js";
 const CDN_CORE = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js";
-let ffmpeg = null, file = null, total = 0, clips = [];
+let onProg = null, ffmpeg = null, file = null, total = 0, clips = [];
 
 function say(t, err){ const s = $("status"); s.textContent = t; s.className = err ? "err" : ""; }
 function bar(r){ $("fill").style.width = Math.max(0, Math.min(1, r || 0)) * 100 + "%"; }
@@ -146,7 +146,7 @@ $("file").onchange = async e => {
   $("fname").innerHTML = ""; const n = document.createElement("span"); n.textContent = file.name;
   const s = document.createElement("small"); s.textContent = mb(file.size);
   $("fname").append(n, s);
-  say(file.size > 1073741824 ? "This file is over 1 GB and may fail. Try a smaller file if it does." : "");
+  say("");
   draw();
   const d = await duration(file);
   total = isNaN(d) ? 0 : d;
@@ -156,12 +156,23 @@ $("file").onchange = async e => {
 
 async function engine(){
   if (ffmpeg) return ffmpeg;
-  let core;
-  try { await loadScript("vendor/ffmpeg.min.js"); core = new URL("vendor/ffmpeg-core.js", location.href).href; }
-  catch (e) { await loadScript(CDN_JS); core = CDN_CORE; }
-  ffmpeg = FFmpeg.createFFmpeg({ corePath: core });
-  ffmpeg.setProgress(({ ratio }) => bar(ratio));
-  await ffmpeg.load();
+  const V = "https://cdn.jsdelivr.net/npm/";
+  const CDN = { lib: V + "@ffmpeg/ffmpeg@0.12.10/dist/umd/", util: V + "@ffmpeg/util@0.12.1/dist/umd/index.js", core: V + "@ffmpeg/core@0.12.6/dist/umd/" };
+  let local = true;
+  try { await loadScript("vendor/ffmpeg.js"); await loadScript("vendor/util.js"); }
+  catch (e) { local = false; await loadScript(CDN.lib + "ffmpeg.js"); await loadScript(CDN.util); }
+  const ff = new FFmpegWASM.FFmpeg();
+  ff.on("progress", ({ progress }) => { if (onProg) onProg(progress); });
+  const { toBlobURL } = FFmpegUtil, abs = p => new URL(p, location.href).href;
+  const get = (url, type) => local ? url : toBlobURL(url, type);
+  try {
+    await ff.load({
+      classWorkerURL: await get(local ? abs("vendor/814.ffmpeg.js") : CDN.lib + "814.ffmpeg.js", "text/javascript"),
+      coreURL: await get(local ? abs("vendor/ffmpeg-core.js") : CDN.core + "ffmpeg-core.js", "text/javascript"),
+      wasmURL: await get(local ? abs("vendor/ffmpeg-core.wasm") : CDN.core + "ffmpeg-core.wasm", "application/wasm")
+    });
+  } catch (e) { try { ff.terminate(); } catch (_) {} throw e; }
+  ffmpeg = ff;
   return ffmpeg;
 }
 
@@ -195,34 +206,29 @@ $("go").onclick = async () => {
     if (!ffmpeg) say("Loading the video engine…");
     const ff = await engine();
     const ext = ((file.name.match(/\.([a-z0-9]+)$/i) || [])[1] || "mp4").toLowerCase();
-    const base = file.name.replace(/\.[^.]+$/, ""), inName = "in." + ext;
+    const base = file.name.replace(/\.[^.]+$/, "");
     const type = file.type || "video/mp4";
+    const p = plan();
+    if (!p) throw new Error("Could not read the video length, so the cuts cannot be planned. Try another video file.");
 
-    say("Reading the video into memory…");
-    ff.FS("writeFile", inName, await FFmpeg.fetchFile(file));
-    say("Splitting…");
-    await ff.run("-i", inName, "-c", "copy", "-f", "segment", "-segment_time", String(secs), "-reset_timestamps", "1", "c_%03d." + ext);
-    ff.FS("unlink", inName);
+    /* Read the video straight from storage instead of copying it into memory */
+    try { await ff.createDir("/in"); } catch (_) {}
+    try { await ff.unmount("/in"); } catch (_) {}
+    await ff.mount("WORKERFS", { files: [file] }, "/in");
+    const src = "/in/" + file.name, n = p.a.length;
+    let start = 0;
 
-    const names = ff.FS("readdir", "/").filter(n => /^c_\d{3}\./.test(n)).sort();
-    if (!names.length) throw new Error("No clips were created. This video format may not support splitting.");
-
-    if ($("merge").checked && names.length > 1) {
-      const last = names[names.length - 1], prev = names[names.length - 2];
-      const d = await duration(new Blob([ff.FS("readFile", last)], { type }));
-      if (d < (parseFloat($("tiny").value) || 0)) {
-        say("Merging the tiny last clip…");
-        ff.FS("writeFile", "l.txt", "file '" + prev + "'\nfile '" + last + "'\n");
-        await ff.run("-f", "concat", "-safe", "0", "-i", "l.txt", "-c", "copy", "m." + ext);
-        ["l.txt", prev, last].forEach(n => ff.FS("unlink", n));
-        ff.FS("rename", "m." + ext, prev);
-        names.pop();
-      }
-    }
-
-    names.forEach((n, i) => {
-      const blob = new Blob([ff.FS("readFile", n)], { type });
-      ff.FS("unlink", n);
+    /* Cut one clip at a time so only one clip is ever in memory */
+    for (let i = 0; i < n; i++) {
+      say("Cutting clip " + (i + 1) + " of " + n + "…");
+      onProg = r => bar((i + Math.max(0, Math.min(1, r || 0))) / n);
+      const out = "c." + ext, args = ["-ss", String(start), "-i", src];
+      if (i < n - 1) args.push("-t", String(p.a[i]));
+      args.push("-c", "copy", "-map", "0", "-avoid_negative_ts", "make_zero", "-y", out);
+      if (await ff.exec(args) !== 0) throw new Error("ffmpeg could not cut clip " + (i + 1) + ".");
+      const blob = new Blob([await ff.readFile(out)], { type });
+      await ff.deleteFile(out);
+      start += p.a[i];
       const btn = document.createElement("button");
       btn.className = "dl"; btn.textContent = NATIVE ? "Save" : "Download";
       const c = { name: base + " Part " + (i + 1) + "." + ext, blob, btn };
@@ -232,7 +238,10 @@ $("go").onclick = async () => {
       const t = document.createElement("span"); t.textContent = "Part " + (i + 1);
       const sm = document.createElement("small"); sm.textContent = mb(blob.size); t.appendChild(sm);
       row.append(t, btn); $("out").appendChild(row);
-    });
+    }
+    onProg = null;
+    try { await ff.unmount("/in"); } catch (_) {}
+    const names = clips;
 
     bar(1);
     say("Done. " + names.length + " clip" + (names.length > 1 ? "s" : "") + " ready.");
