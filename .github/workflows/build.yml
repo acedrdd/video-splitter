@@ -66,6 +66,24 @@ jobs:
           java-version: 17
       - run: npm install
       - run: npx cap add android
+      - name: Make app icons from logo.svg
+        continue-on-error: true
+        run: |
+          sudo apt-get update && sudo apt-get install -y librsvg2-bin
+          mkdir -p assets
+          python3 - <<'PY'
+          s = open("logo.svg").read()
+          inner = s.split('fill="#181b2c"/>', 1)[1].rsplit("</svg>", 1)[0]
+          def svg(bg, art, scale):
+              g = '<g transform="translate(256 256) scale(%s) translate(-256 -256)">%s</g>' % (scale, inner) if art else ""
+              b = '<rect width="512" height="512" fill="#181b2c"/>' if bg else ""
+              return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">%s%s</svg>' % (b, g)
+          open("assets/icon-only.svg", "w").write(svg(True, True, 0.85))
+          open("assets/icon-foreground.svg", "w").write(svg(False, True, 0.62))
+          open("assets/icon-background.svg", "w").write(svg(True, False, 1))
+          PY
+          for f in icon-only icon-foreground icon-background; do rsvg-convert -w 1024 -h 1024 assets/$f.svg -o assets/$f.png; done
+          npx --yes @capacitor/assets@3 generate --android
       - run: npx cap sync android
       - run: chmod +x android/gradlew
       - run: ./gradlew assembleDebug
