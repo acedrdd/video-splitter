@@ -1,3 +1,5 @@
+<p align="center"><img src="logo.svg" width="112" alt="Video Splitter logo"></p>
+
 # Video Splitter
 
 Cut a long video into equal-length clips, right in your browser or on your phone. Nothing is uploaded: your video never leaves your device.
