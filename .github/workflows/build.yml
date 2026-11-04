@@ -27,6 +27,7 @@ jobs:
         run: |
           mkdir -p www/vendor
           cp index.html www/
+          cp logo.svg www/
           cp node_modules/@ffmpeg/ffmpeg/dist/ffmpeg.min.js www/vendor/
           cp node_modules/@ffmpeg/core/dist/* www/vendor/
       - uses: actions/upload-artifact@v4
@@ -72,4 +73,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: VideoSplitter-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/debug/videosplitter.apk
