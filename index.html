@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Video Splitter</title>
-<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJWaWRlbyBTcGxpdHRlciBsb2dvIiB4bWxuczpjMnBhPSJodHRwOi8vYzJwYS5vcmcvbWFuaWZlc3QiPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTEyIiBmaWxsPSIjMTgxYjJjIi8+CiAgPGcgZmlsbD0iI2U5ZWNmMyIgb3BhY2l0eT0iLjgiPgogICAgPHJlY3QgeD0iNzYiIHk9Ijg2IiB3aWR0aD0iMjQiIGhlaWdodD0iMTQiIHJ4PSIzIi8+PHJlY3QgeD0iMTI2IiB5PSI4NiIgd2lkdGg9IjI0IiBoZWlnaHQ9IjE0IiByeD0iMyIvPgogICAgPHJlY3QgeD0iMTc2IiB5PSI4NiIgd2lkdGg9IjI0IiBoZWlnaHQ9IjE0IiByeD0iMyIvPjxyZWN0IHg9IjIyNiIgeT0iODYiIHdpZHRoPSIyNCIgaGVpZ2h0PSIxNCIgcng9IjMiLz4KICAgIDxyZWN0IHg9IjI3NiIgeT0iODYiIHdpZHRoPSIyNCIgaGVpZ2h0PSIxNCIgcng9IjMiLz48cmVjdCB4PSIzMjYiIHk9Ijg2IiB3aWR0aD0iMjQiIGhlaWdodD0iMTQiIHJ4PSIzIi8+CiAgICA8cmVjdCB4PSIzNzYiIHk9Ijg2IiB3aWR0aD0iMjQiIGhlaWdodD0iMTQiIHJ4PSIzIi8+PHJlY3QgeD0iNDEyIiB5PSI4NiIgd2lkdGg9IjI0IiBoZWlnaHQ9IjE0IiByeD0iMyIvPgogICAgPHJlY3QgeD0iNzYiIHk9IjQxMiIgd2lkdGg9IjI0IiBoZWlnaHQ9IjE0IiByeD0iMyIvPjxyZWN0IHg9IjEyNiIgeT0iNDEyIiB3aWR0aD0iMjQiIGhlaWdodD0iMTQiIHJ4PSIzIi8+CiAgICA8cmVjdCB4PSIxNzYiIHk9IjQxMiIgd2lkdGg9IjI0IiBoZWlnaHQ9IjE0IiByeD0iMyIvPjxyZWN0IHg9IjIyNiIgeT0iNDEyIiB3aWR0aD0iMjQiIGhlaWdodD0iMTQiIHJ4PSIzIi8+CiAgICA8cmVjdCB4PSIyNzYiIHk9IjQxMiIgd2lkdGg9IjI0IiBoZWlnaHQ9IjE0IiByeD0iMyIvPjxyZWN0IHg9IjMyNiIgeT0iNDEyIiB3aWR0aD0iMjQiIGhlaWdodD0iMTQiIHJ4PSIzIi8+CiAgICA8cmVjdCB4PSIzNzYiIHk9IjQxMiIgd2lkdGg9IjI0IiBoZWlnaHQ9IjE0IiByeD0iMyIvPjxyZWN0IHg9IjQxMiIgeT0iNDEyIiB3aWR0aD0iMjQiIGhlaWdodD0iMTQiIHJ4PSIzIi8+CiAgPC9nPgogIDxyZWN0IHg9Ijc2IiB5PSIxNTYiIHdpZHRoPSIxMTYiIGhlaWdodD0iMjAwIiByeD0iMjQiIGZpbGw9IiM3YzdmZmYiLz4KICA8cmVjdCB4PSIyMDgiIHk9IjE1NiIgd2lkdGg9IjExNiIgaGVpZ2h0PSIyMDAiIHJ4PSIyNCIgZmlsbD0iIzdjN2ZmZiIgb3BhY2l0eT0iLjciLz4KICA8cmVjdCB4PSIzNDAiIHk9IjE1NiIgd2lkdGg9Ijk2IiBoZWlnaHQ9IjIwMCIgcng9IjI0IiBmaWxsPSIjZmY2YTJlIi8+Cjwvc3ZnPgo=" type="image/svg+xml">
 <style>
 :root{--bg:#e9ecf3;--card:#f9faff;--ink:#181b2c;--mute:#62677f;--line:#d2d7e5;--acc:#3a3df0;--accink:#fff;--cut:#ff6a2e;--reel:#181b2c;--hole:#e9ecf3;--seg:#7c7fff}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#14162a;--card:#1d2038;--ink:#eceefb;--mute:#9a9fba;--line:#2e3252;--acc:#8f92ff;--accink:#10122a;--cut:#ff8a5c;--reel:#0d0f20;--hole:#14162a}}
@@ -51,18 +51,64 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .clip small{display:block;color:var(--mute)}
 .dl{padding:9px 16px}
 #all{width:100%;margin-top:10px;background:transparent;color:var(--acc);border:2px solid var(--acc)}
-.tabs{display:flex;gap:8px;margin:0 0 22px}.tabs .chip{flex:1;text-align:center;padding:11px 6px;font-size:.9rem}
 .os p{margin:0 0 14px}.os ol{margin:0 0 18px;padding-left:1.2em;color:var(--mute);font-size:.92rem}.os code{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.85em;word-break:break-all}
 .os a{color:var(--acc)}.os .main{width:100%;margin-top:12px;font-size:1.05rem}
+.top{align-items:center;margin-bottom:14px}
+.top .theme{margin-top:0}
+.here{font-weight:700;font-size:.95rem;color:var(--mute);letter-spacing:.01em}
+.burger{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);display:grid;place-content:center;gap:5px;cursor:pointer;padding:0}
+.burger i{display:block;width:20px;height:2px;background:var(--ink);border-radius:2px}
+.burger i:nth-child(2){width:14px;justify-self:start}
+.pt{font-size:1.45rem;line-height:1.2;letter-spacing:-.02em;margin:4px 0 6px}
+#scrim{position:fixed;inset:0;background:rgba(8,10,24,.52);opacity:0;pointer-events:none;transition:opacity .28s;z-index:40;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+#scrim.open{opacity:1;pointer-events:auto}
+#drawer{position:fixed;top:0;bottom:0;left:0;width:min(300px,82vw);background:var(--card);border-right:1px solid var(--line);box-shadow:0 0 44px rgba(0,0,0,.3);transform:translateX(-104%);visibility:hidden;transition:transform .32s cubic-bezier(.2,.8,.2,1),visibility 0s .32s;z-index:50;padding:max(20px,env(safe-area-inset-top)) 12px max(20px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:4px;overflow-y:auto}
+#drawer.open{transform:none;visibility:visible;transition:transform .32s cubic-bezier(.2,.8,.2,1),visibility 0s}
+.dhead{display:flex;align-items:center;gap:12px;padding:2px 6px 18px;margin-bottom:6px;border-bottom:1px solid var(--line)}
+.dhead b{font-size:1.05rem;letter-spacing:-.01em;flex:1}
+.dx{font:inherit;color:var(--mute);background:none;border:0;border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:1.05rem}
+.nav{display:flex;align-items:center;gap:14px;width:100%;text-align:left;font:inherit;font-weight:600;color:var(--ink);background:none;border:0;border-radius:14px;padding:11px 10px;cursor:pointer;opacity:0;transform:translateX(-14px);transition:opacity .3s,transform .3s,background .2s}
+#drawer.open .nav{opacity:1;transform:none;transition-delay:calc(var(--i) * 45ms + 90ms),calc(var(--i) * 45ms + 90ms),0s}
+.nav .ni{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:var(--bg);color:var(--mute);flex:none;transition:background .2s,color .2s}
+.nav .ni svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nav:hover{background:var(--bg)}
+.nav[aria-current=page]{background:color-mix(in srgb,var(--acc) 14%,transparent)}
+.nav[aria-current=page] .ni{background:var(--acc);color:var(--accink)}
+.nav em{margin-left:auto;font-style:normal;font-size:.74rem;font-weight:700;color:var(--accink);background:var(--acc);border-radius:999px;padding:2px 8px;min-width:24px;text-align:center}
+.nav em:empty{display:none}
+.dfoot{margin:auto 6px 0;padding-top:16px;color:var(--mute);font-size:.82rem}
+.lcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:14px;word-break:break-word}
+.nowrow{display:flex;align-items:center;gap:10px;font-weight:600}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--line);flex:none}
+.dot.on{background:var(--acc);animation:pulse 1.3s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--acc) 55%,transparent)}50%{box-shadow:0 0 0 7px transparent}}
+.dstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 8px;text-align:center}
+.stat b{display:block;font-size:1.25rem;line-height:1.2}.stat span{font-size:.74rem;color:var(--mute)}
+.llist{display:grid;gap:8px}
+.empty{display:grid;justify-items:center;gap:6px;text-align:center;color:var(--mute);font-size:.92rem;border:2px dashed var(--line);border-radius:16px;padding:26px 16px}
+.empty b{color:var(--ink)}
+.lrow{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;animation:rin .3s ease both}
+@keyframes rin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.lic{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;flex:none;background:color-mix(in srgb,var(--acc) 15%,transparent);color:var(--acc)}
+.lic.split{background:color-mix(in srgb,var(--cut) 15%,transparent);color:var(--cut)}
+.lic svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.lrow>span.t{flex:1;min-width:0;word-break:break-word;font-size:.95rem;font-weight:600}
+.lrow small{display:block;color:var(--mute);font-weight:400;font-size:.78rem;margin-top:2px}
+.lrow .st{font-size:.72rem;font-weight:700;border:1px solid var(--line);color:var(--mute);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.lrow .st.ok{border-color:var(--acc);color:var(--acc)}
+.lrow .x{background:none;border:0;color:var(--mute);font-size:1.05rem;padding:6px;cursor:pointer;border-radius:8px}
+@media (prefers-reduced-motion:reduce){#drawer,#scrim,.nav,.lrow{transition:none!important;animation:none!important}.nav{opacity:1;transform:none}.dot.on{animation:none}}
 .note{margin-top:24px;font-size:.85rem;color:var(--mute)}
 </style>
 </head>
 <body>
 <main>
-<div class="top"><h1>Video Splitter</h1><button class="theme" id="theme" type="button"></button></div>
-<div class="tabs" role="tablist"><button class="chip" id="tab-split" type="button" role="tab" aria-pressed="true">Quick split</button><button class="chip" id="tab-auto" type="button" role="tab" aria-pressed="false">Auto clip</button></div>
+<div class="top"><button class="burger" id="burger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="drawer"><i></i><i></i><i></i></button><span class="here" id="here">Quick split</span><button class="theme" id="theme" type="button"></button></div>
+<h1>Video Splitter</h1>
 
 <div id="pane-split">
+<h2 class="pt">Quick split</h2>
 <p class="sub">Cut a long video into equal clips. Everything stays on your device.</p>
 <label class="pick"><input type="file" id="file" accept="video/*"><span id="fname">Choose a video</span></label>
 <div class="reel"><div id="strip"></div></div>
@@ -84,6 +130,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 </div>
 
 <div id="pane-auto" class="os" hidden>
+<h2 class="pt">Auto clip</h2>
 <p class="sub" style="max-width:none">Finds the standout moments in a long video by itself. It listens for natural pauses, builds 20 to 60 second candidates that start and end on a pause, scores them by energy and delivery, and cuts the best ones. No account, no key, nothing leaves your phone.</p>
 <label class="pick"><input type="file" id="afile" accept="video/*"><span id="afname">Choose a video</span></label>
 <label class="chk" style="margin-top:16px"><input type="checkbox" id="adeep"> Deep listen (slower, decodes the audio for a finer result)</label>
@@ -94,7 +141,27 @@ button:disabled{opacity:.45;cursor:not-allowed}
 <button class="main" id="aall" hidden></button>
 <p class="note">This picks moments from how the audio sounds (energy, pauses, delivery), not from what is said, so it is a good first guess rather than a mind reader. Cuts are lossless and can start a second or two early because they snap to a keyframe. Works with MP4 and MOV videos.</p>
 </div>
+<div id="pane-lib" class="os" hidden>
+<h2 class="pt">Downloads</h2>
+<p class="sub">Every clip you cut shows up here the moment it is made.</p>
+<div class="dstats"><div class="stat"><b id="st-n">0</b><span>Clips</span></div><div class="stat"><b id="st-s">0</b><span>Saved</span></div><div class="stat"><b id="st-z">0 MB</b><span>Total size</span></div></div>
+<div class="lcard"><div class="nowrow"><span class="dot" id="nowdot"></span><span id="lib-now">Nothing running.</span></div><div class="bar" id="nowbar" hidden><i id="dl-fill"></i></div></div>
+<label class="chk" id="autorow" hidden><input type="checkbox" id="autosave" checked> Save each clip to Documents as it is cut</label>
+<div class="chips" id="lfilter"></div>
+<div id="lib-list" class="llist"></div>
+<button class="chip" id="lib-clear" type="button" style="width:100%;margin-top:16px">Clear history</button>
+<p class="note" id="lib-note">History is kept on this device. In the Android app, saved clips are in Documents/VideoSplitter.</p>
+</div>
 </main>
+<div id="scrim"></div>
+<nav id="drawer" aria-label="Menu" aria-hidden="true">
+<div class="dhead"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJWaWRlbyBTcGxpdHRlciBsb2dvIiB4bWxuczpjMnBhPSJodHRwOi8vYzJwYS5vcmcvbWFuaWZlc3QiPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTEyIiBmaWxsPSIjMTgxYjJjIi8+CiAgPGcgZmlsbD0iI2U5ZWNmMyIgb3BhY2l0eT0iLjgiPgogICAgPHJlY3QgeD0iNzYiIHk9Ijg2IiB3aWR0aD0iMjQiIGhlaWdodD0iMTQiIHJ4PSIzIi8+PHJlY3QgeD0iMTI2IiB5PSI4NiIgd2lkdGg9IjI0IiBoZWlnaHQ9IjE0IiByeD0iMyIvPgogICAgPHJlY3QgeD0iMTc2IiB5PSI4NiIgd2lkdGg9IjI0IiBoZWlnaHQ9IjE0IiByeD0iMyIvPjxyZWN0IHg9IjIyNiIgeT0iODYiIHdpZHRoPSIyNCIgaGVpZ2h0PSIxNCIgcng9IjMiLz4KICAgIDxyZWN0IHg9IjI3NiIgeT0iODYiIHdpZHRoPSIyNCIgaGVpZ2h0PSIxNCIgcng9IjMiLz48cmVjdCB4PSIzMjYiIHk9Ijg2IiB3aWR0aD0iMjQiIGhlaWdodD0iMTQiIHJ4PSIzIi8+CiAgICA8cmVjdCB4PSIzNzYiIHk9Ijg2IiB3aWR0aD0iMjQiIGhlaWdodD0iMTQiIHJ4PSIzIi8+PHJlY3QgeD0iNDEyIiB5PSI4NiIgd2lkdGg9IjI0IiBoZWlnaHQ9IjE0IiByeD0iMyIvPgogICAgPHJlY3QgeD0iNzYiIHk9IjQxMiIgd2lkdGg9IjI0IiBoZWlnaHQ9IjE0IiByeD0iMyIvPjxyZWN0IHg9IjEyNiIgeT0iNDEyIiB3aWR0aD0iMjQiIGhlaWdodD0iMTQiIHJ4PSIzIi8+CiAgICA8cmVjdCB4PSIxNzYiIHk9IjQxMiIgd2lkdGg9IjI0IiBoZWlnaHQ9IjE0IiByeD0iMyIvPjxyZWN0IHg9IjIyNiIgeT0iNDEyIiB3aWR0aD0iMjQiIGhlaWdodD0iMTQiIHJ4PSIzIi8+CiAgICA8cmVjdCB4PSIyNzYiIHk9IjQxMiIgd2lkdGg9IjI0IiBoZWlnaHQ9IjE0IiByeD0iMyIvPjxyZWN0IHg9IjMyNiIgeT0iNDEyIiB3aWR0aD0iMjQiIGhlaWdodD0iMTQiIHJ4PSIzIi8+CiAgICA8cmVjdCB4PSIzNzYiIHk9IjQxMiIgd2lkdGg9IjI0IiBoZWlnaHQ9IjE0IiByeD0iMyIvPjxyZWN0IHg9IjQxMiIgeT0iNDEyIiB3aWR0aD0iMjQiIGhlaWdodD0iMTQiIHJ4PSIzIi8+CiAgPC9nPgogIDxyZWN0IHg9Ijc2IiB5PSIxNTYiIHdpZHRoPSIxMTYiIGhlaWdodD0iMjAwIiByeD0iMjQiIGZpbGw9IiM3YzdmZmYiLz4KICA8cmVjdCB4PSIyMDgiIHk9IjE1NiIgd2lkdGg9IjExNiIgaGVpZ2h0PSIyMDAiIHJ4PSIyNCIgZmlsbD0iIzdjN2ZmZiIgb3BhY2l0eT0iLjciLz4KICA8cmVjdCB4PSIzNDAiIHk9IjE1NiIgd2lkdGg9Ijk2IiBoZWlnaHQ9IjIwMCIgcng9IjI0IiBmaWxsPSIjZmY2YTJlIi8+Cjwvc3ZnPgo=" width="38" height="38" alt=""><b>Video Splitter</b><button class="dx" id="dclose" type="button" aria-label="Close menu">&#10005;</button></div>
+<button class="nav" id="nav-split" type="button" style="--i:0"><span class="ni"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg></span>Quick split</button>
+<button class="nav" id="nav-auto" type="button" style="--i:1"><span class="ni"><svg viewBox="0 0 24 24"><path d="M11 3l1.9 5.1L18 10l-5.1 1.9L11 17l-1.9-5.1L4 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></span>Auto clip</button>
+<button class="nav" id="nav-lib" type="button" style="--i:2"><span class="ni"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg></span>Downloads<em id="navbadge"></em></button>
+<p class="dfoot">Everything stays on your device.</p>
+</nav>
+
 
 <script>
 /* Lossless MP4/MOV cutter. No ffmpeg, no workers, no wasm. Reads only the bytes it needs. */
@@ -403,6 +470,74 @@ $("file").onchange = async e => {
   catch (err) { $("meta").textContent = "Could not read this video."; say(err.message, true); }
 };
 
+/* Library, activity and notifications */
+let lib = [];
+try { lib = JSON.parse(localStorage.getItem("vs_lib") || "[]").map(r => (r.state === "saving" ? Object.assign(r, { state: "cut" }) : r)); } catch (_) { lib = []; }
+function saveLib(){ try { localStorage.setItem("vs_lib", JSON.stringify(lib.slice(0, 300))); } catch (_) {} }
+const STATE = { cut: "Not saved", saving: "Saving…", saved: "Saved", downloaded: "Downloaded" };
+const IC = {
+  auto: '<svg viewBox="0 0 24 24"><path d="M11 3l1.9 5.1L18 10l-5.1 1.9L11 17l-1.9-5.1L4 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>',
+  split: '<svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg>'
+};
+let libFilter = "all";
+[["all", "All"], ["auto", "Auto clip"], ["split", "Quick split"]].forEach(([k, label]) => {
+  const b = document.createElement("button"); b.className = "chip"; b.type = "button"; b.textContent = label; b.dataset.k = k;
+  b.onclick = () => { libFilter = k; renderLib(); };
+  $("lfilter").appendChild(b);
+});
+function renderLib(){
+  const items = lib.filter(r => libFilter === "all" || r.src === libFilter);
+  const saved = lib.filter(r => r.state === "saved" || r.state === "downloaded").length, size = lib.reduce((a, r) => a + (r.size || 0), 0);
+  $("st-n").textContent = lib.length; $("st-s").textContent = saved;
+  $("st-z").textContent = size >= 1073741824 ? (size / 1073741824).toFixed(1) + " GB" : Math.round(size / 1048576) + " MB";
+  $("navbadge").textContent = lib.length ? (lib.length > 99 ? "99+" : String(lib.length)) : "";
+  for (const c of document.querySelectorAll("#lfilter .chip")) c.setAttribute("aria-pressed", String(c.dataset.k === libFilter));
+  const box = $("lib-list"); box.innerHTML = "";
+  if (!items.length) {
+    const d = document.createElement("div"); d.className = "empty";
+    const b = document.createElement("b"); b.textContent = "No clips yet";
+    const p = document.createElement("span"); p.textContent = "Cut a video and each clip will appear here.";
+    d.append(b, p); box.appendChild(d); return;
+  }
+  for (const r of items.slice(0, 100)) {
+    const row = document.createElement("div"); row.className = "lrow";
+    const ic = document.createElement("span"); ic.className = "lic " + r.src; ic.innerHTML = IC[r.src] || IC.split;
+    const t = document.createElement("span"); t.className = "t"; t.textContent = r.name;
+    const sm = document.createElement("small");
+    sm.textContent = (r.src === "auto" ? "Auto clip" : "Quick split") + " · " + (r.sub || mb(r.size)) + " · " + new Date(r.when).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    t.appendChild(sm);
+    const st = document.createElement("span"); st.className = "st" + (r.state === "saved" || r.state === "downloaded" ? " ok" : ""); st.textContent = STATE[r.state] || r.state;
+    const x = document.createElement("button"); x.className = "x"; x.type = "button"; x.textContent = "\u2715"; x.setAttribute("aria-label", "Remove " + r.name);
+    x.onclick = async () => {
+      if (NATIVE && r.state === "saved") { try { await Capacitor.Plugins.Filesystem.deleteFile({ path: "VideoSplitter/" + r.name, directory: "DOCUMENTS" }); } catch (_) {} }
+      lib = lib.filter(y => y !== r); saveLib(); renderLib();
+    };
+    row.append(ic, t, st, x); box.appendChild(row);
+  }
+}
+function libAdd(rec){ lib.unshift(rec); saveLib(); renderLib(); return rec; }
+function libSet(rec, patch){ Object.assign(rec, patch); saveLib(); renderLib(); }
+$("lib-clear").onclick = () => { lib = []; saveLib(); renderLib(); };
+
+let notifOK = null, lastN = 0;
+async function notify(body, ongoing, force){
+  const ln = NATIVE && Capacitor.Plugins && Capacitor.Plugins.LocalNotifications;
+  if (!ln) return;
+  const now = Date.now(); if (!force && now - lastN < 800) return; lastN = now;
+  try {
+    if (notifOK === null) { const p = await ln.requestPermissions(); notifOK = p.display === "granted"; }
+    if (!notifOK) return;
+    await ln.schedule({ notifications: [{ id: 1, title: "Video Splitter", body, ongoing: !!ongoing, autoCancel: !ongoing }] });
+  } catch (_) {}
+}
+/* One place to say what is happening: the Library card and, in the app, the notification */
+function activity(text, running, force, frac){
+  const on = running !== false;
+  $("lib-now").textContent = text; $("nowdot").className = "dot" + (on ? " on" : "");
+  if (typeof frac === "number") { $("nowbar").hidden = false; $("dl-fill").style.width = Math.round(Math.max(0, Math.min(1, frac)) * 100) + "%"; }
+  notify(text, on, force);
+}
+
 /* Saving */
 async function saveNative(name, blob){
   const FS = Capacitor.Plugins.Filesystem, CH = 4 * 1024 * 1024, path = "VideoSplitter/" + name;
@@ -415,26 +550,37 @@ async function saveNative(name, blob){
 async function saveClip(c){
   try {
     if (NATIVE) {
-      c.btn.disabled = true; c.btn.textContent = "Saving…";
+      c.btn.disabled = true; c.btn.textContent = "Saving…"; libSet(c.rec, { state: "saving" });
+      activity("Saving " + c.name + "…", true);
       await saveNative(c.name, c.blob);
       c.btn.textContent = "Saved"; say("Saved to Documents/VideoSplitter.");
+      libSet(c.rec, { state: "saved" });
+      activity("Saved " + c.name, false, true);
     } else {
       const a = document.createElement("a"); a.href = URL.createObjectURL(c.blob); a.download = c.name; a.click();
+      libSet(c.rec, { state: "downloaded" });
     }
-  } catch (e) { c.btn.disabled = false; c.btn.textContent = "Save"; say("Could not save: " + (e.message || e), true); }
+  } catch (e) { c.btn.disabled = false; c.btn.textContent = "Save"; libSet(c.rec, { state: "cut" }); say("Could not save: " + (e.message || e), true); activity("Could not save " + c.name, false, true); }
 }
-function addClip(container, label, sub, name, blob){
+function addClip(container, label, sub, name, blob, src){
   const btn = document.createElement("button");
   btn.className = "dl"; btn.textContent = NATIVE ? "Save" : "Download";
   const c = { name, blob, btn };
+  c.rec = libAdd({ id: Date.now() + "-" + Math.random().toString(36).slice(2, 7), src, name, size: blob.size, sub, when: Date.now(), state: "cut" });
   btn.onclick = () => saveClip(c);
   clips.push(c);
   const row = document.createElement("div"); row.className = "clip";
   const t = document.createElement("span"); t.textContent = label;
   const sm = document.createElement("small"); sm.textContent = sub; t.appendChild(sm);
   row.append(t, btn); container.appendChild(row);
+  return c;
 }
-const saveAll = async () => { for (const c of clips) { await saveClip(c); if (!NATIVE) await new Promise(r => setTimeout(r, 700)); } };
+const autoSave = () => NATIVE && $("autosave").checked;
+const saveAll = async () => {
+  let i = 0; const todo = clips.filter(c => c.rec.state !== "saved");
+  for (const c of todo) { i++; activity("Saving clip " + i + " of " + todo.length + "…", true, false, (i - 1) / todo.length); await saveClip(c); if (!NATIVE) await new Promise(r => setTimeout(r, 700)); }
+  activity("Saved " + todo.length + " clip" + (todo.length === 1 ? "" : "s") + ".", false, true, 1);
+};
 $("all").onclick = saveAll; $("aall").onclick = saveAll;
 
 /* Quick split */
@@ -447,15 +593,18 @@ $("go").onclick = async () => {
     let start = 0;
     for (let i = 0; i < n; i++) {
       say("Cutting clip " + (i + 1) + " of " + n + "…");
+      activity("Quick split: cutting clip " + (i + 1) + " of " + n + "…", true, false, i / n);
       await breathe();
       const r = await MP4.cut(meta, start, start + p.a[i], { tile: true });
       start += p.a[i];
-      addClip($("out"), "Part " + (i + 1), mb(r.blob.size), base + " Part " + (i + 1) + "." + ext, r.blob);
+      const c = addClip($("out"), "Part " + (i + 1), mb(r.blob.size), base + " Part " + (i + 1) + "." + ext, r.blob, "split");
+      if (autoSave()) await saveClip(c);
       bar((i + 1) / n);
     }
     say("Done. " + n + " clip" + (n > 1 ? "s" : "") + " ready.");
+    activity("Quick split done: " + n + " clip" + (n > 1 ? "s" : "") + (autoSave() ? " saved." : " ready."), false, true, 1);
     if (n > 1) { $("all").textContent = NATIVE ? "Save all clips" : "Download all clips"; $("all").hidden = false; }
-  } catch (e) { console.error(e); say(e.message || String(e), true); }
+  } catch (e) { console.error(e); say(e.message || String(e), true); activity("Quick split stopped: " + (e.message || e), false, true); }
   $("go").disabled = false;
 };
 
@@ -558,6 +707,7 @@ $("ago").onclick = async () => {
   $("ago").disabled = true; $("aout").innerHTML = ""; $("aall").hidden = true; clips = []; abar(0);
   try {
     const dur = ameta.duration;
+    activity("Auto clip: listening to the video…", true, true, 0.02);
     const prog = { done: 0, total: Math.ceil(dur / 60), read: 0, dec: 0 }, t0 = Date.now();
     let db = $("adeep").checked ? null : audioFromSizes(ameta, dur), how = "fast";
     if (!db) {
@@ -575,14 +725,17 @@ $("ago").onclick = async () => {
     const ext = extOf(afile), base = baseOf(afile);
     for (let i = 0; i < list.length; i++) {
       say("Cutting clip " + (i + 1) + " of " + list.length + "…");
+      activity("Auto clip: cutting clip " + (i + 1) + " of " + list.length + "…", true, false, 0.4 + 0.6 * i / list.length);
       await breathe();
       const c = list[i], r = await MP4.cut(ameta, c.s, c.e);
-      addClip($("aout"), "Clip " + (i + 1), tc(r.start) + " to " + tc(r.end) + " · " + mb(r.blob.size), base + " Clip " + (i + 1) + "." + ext, r.blob);
+      const item = addClip($("aout"), "Clip " + (i + 1), tc(r.start) + " to " + tc(r.end) + " · " + mb(r.blob.size), base + " Clip " + (i + 1) + "." + ext, r.blob, "auto");
+      if (autoSave()) await saveClip(item);
       abar(0.4 + 0.6 * (i + 1) / list.length);
     }
     say("Done. " + list.length + " clip" + (list.length > 1 ? "s" : "") + " ready. (" + (how === "fast" ? "Fast listen" : "Deep listen") + " took " + listenS + "s)");
+    activity("Auto clip done: " + list.length + " clip" + (list.length > 1 ? "s" : "") + (autoSave() ? " saved." : " ready."), false, true, 1);
     $("aall").textContent = NATIVE ? "Save all clips" : "Download all clips"; $("aall").hidden = list.length < 2;
-  } catch (e) { console.error(e); say(e.message || String(e), true); }
+  } catch (e) { console.error(e); say(e.message || String(e), true); activity("Auto clip stopped: " + (e.message || e), false, true); }
   $("ago").disabled = false;
 };
 
@@ -603,13 +756,36 @@ $("theme").onclick = () => setTheme(curTheme() === "dark" ? "light" : "dark", tr
 
 /* Mode menu */
 function store(k, v){ try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (_) {} return null; }
-function mode(m){
-  for (const k of ["split", "auto"]) { $("pane-" + k).hidden = k !== m; $("tab-" + k).setAttribute("aria-pressed", String(k === m)); }
-  store("mode", m);
+const PAGES = { split: "Quick split", auto: "Auto clip", lib: "Downloads" };
+function openMenu(){
+  $("drawer").classList.add("open"); $("scrim").classList.add("open");
+  $("drawer").removeAttribute("aria-hidden"); $("burger").setAttribute("aria-expanded", "true");
+  if (document.body) document.body.style.overflow = "hidden";
 }
-$("tab-split").onclick = () => mode("split");
-$("tab-auto").onclick = () => mode("auto");
-mode(store("mode") === "auto" ? "auto" : "split");
+function closeMenu(){
+  $("drawer").classList.remove("open"); $("scrim").classList.remove("open");
+  $("drawer").setAttribute("aria-hidden", "true"); $("burger").setAttribute("aria-expanded", "false");
+  if (document.body) document.body.style.overflow = "";
+}
+function mode(m){
+  for (const k of Object.keys(PAGES)) { $("pane-" + k).hidden = k !== m; $("nav-" + k).setAttribute("aria-current", k === m ? "page" : "false"); }
+  $("here").textContent = PAGES[m];
+  store("mode", m); closeMenu();
+  if (window.scrollTo) window.scrollTo(0, 0);
+}
+$("burger").onclick = () => ($("drawer").classList.contains("open") ? closeMenu() : openMenu());
+$("scrim").onclick = closeMenu; $("dclose").onclick = closeMenu;
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeMenu(); });
+{ let x0 = null;
+  $("drawer").addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, { passive: true });
+  $("drawer").addEventListener("touchend", e => { if (x0 !== null && e.changedTouches[0].clientX - x0 < -60) closeMenu(); x0 = null; }, { passive: true }); }
+for (const k of Object.keys(PAGES)) $("nav-" + k).onclick = () => mode(k);
+$("autorow").hidden = !NATIVE;
+$("autosave").checked = store("autosave") !== "0";
+$("autosave").onchange = () => store("autosave", $("autosave").checked ? "1" : "0");
+if (NATIVE) $("lib-note").textContent = "Each new cut is added the moment it is made. Saved clips are in Documents/VideoSplitter, and the notification shows what is being cut or saved.";
+renderLib();
+mode(["auto", "lib"].includes(store("mode")) ? store("mode") : "split");
 </script>
 </body>
 </html>

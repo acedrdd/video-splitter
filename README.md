@@ -22,6 +22,9 @@ Nothing is uploaded. No account, no API key, no ads.
 - Auto clip: finds up to 15 standout moments by itself
 - Lossless cuts: no re-encoding, so it is instant and keeps full quality
 - Download clips one by one, or all at once
+- Side menu (the burger button) with separate pages for Quick split, Auto clip and Downloads
+- Downloads page: every clip you cut is listed one by one as it is made, with filters, totals and a live progress card, and the history is kept between visits
+- Android app: each clip is saved automatically as it is cut, and a notification shows what is being cut or saved
 - Light and dark mode
 - Works as a website and as an Android app
 - The Android app works offline and saves clips to `Documents/VideoSplitter`
@@ -59,7 +62,7 @@ ffmpeg -i input.mkv -c copy -f segment -segment_time 1200 -reset_timestamps 1 cl
 | --- | --- |
 | `index.html` | The whole app: page, styles and logic |
 | `logo.svg` | The logo |
-| `package.json` | Pulls in Capacitor |
+| `package.json` | Pulls in Capacitor and its Filesystem and Local Notifications plugins |
 | `capacitor.config.json` | Android app settings |
 | `.github/workflows/build.yml` | Builds the site, deploys Pages, and builds the APK |
 
