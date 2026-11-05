@@ -169,9 +169,10 @@ const MP4 = (() => {
     for (let k = 0; k < ec; k++) sc.push([dv.getUint32(stsc.b + 8 + k * 12), dv.getUint32(stsc.b + 12 + k * 12)]);
     const off = new Float64Array(n);
     { let si = 0;
+      let ei = 0;
       for (let ci = 0; ci < nch && si < n; ci++) {
-        let spc = sc[0][1];
-        for (const e of sc) if (e[0] <= ci + 1) spc = e[1];
+        while (ei + 1 < sc.length && sc[ei + 1][0] <= ci + 1) ei++;
+        const spc = sc[ei][1];
         let o = cho[ci];
         for (let k = 0; k < spc && si < n; k++) { off[si] = o; o += size[si]; si++; }
       } }
@@ -457,22 +458,33 @@ $("afile").onchange = async e => {
 
 async function audioFrames(m, dur){
   if (!m.audio) throw new Error("This video has no audio to listen to.");
-  const FR = 0.1, per = 800, CH = 120, n = Math.ceil(dur / FR) + 2, db = new Float32Array(n).fill(-100);
+  const FR = 0.1, per = 800, CH = 60, n = Math.ceil(dur / FR) + 2, db = new Float32Array(n).fill(-100);
   const Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   if (!Ctx) throw new Error("This browser cannot decode audio.");
-  for (let t = 0; t < dur; t += CH) {
-    const r = await MP4.cut(m, t, Math.min(dur, t + CH), { audioOnly: true });
-    let ab;
-    try { ab = await new Ctx(1, 1, 8000).decodeAudioData(await r.blob.arrayBuffer()); }
-    catch (_) { throw new Error("Could not read this video's audio format."); }
-    const d = ab.getChannelData(0), base = Math.round(t / FR), nf = Math.floor(d.length / per);
-    for (let k = 0; k < nf && base + k < n; k++) {
-      let s = 0; for (let j = k * per; j < (k + 1) * per; j++) s += d[j] * d[j];
-      db[base + k] = 20 * Math.log10(Math.sqrt(s / per) + 1e-6);
+  const starts = []; for (let t = 0; t < dur; t += CH) starts.push(t);
+  let next = 0, done = 0, failed = null;
+  const worker = async () => {
+    while (!failed && next < starts.length) {
+      const t = starts[next++];
+      try {
+        const r = await MP4.cut(m, t, Math.min(dur, t + CH), { audioOnly: true });
+        let ab;
+        try { ab = await new Ctx(1, 1, 8000).decodeAudioData(await r.blob.arrayBuffer()); }
+        catch (_) { throw new Error("Could not read this video's audio format."); }
+        const d = ab.getChannelData(0), base = Math.round(t / FR), nf = Math.floor(d.length / per);
+        for (let k = 0; k < nf && base + k < n; k++) {
+          let s = 0; for (let j = k * per; j < (k + 1) * per; j++) s += d[j] * d[j];
+          db[base + k] = 20 * Math.log10(Math.sqrt(s / per) + 1e-6);
+        }
+      } catch (e) { failed = e; return; }
+      done++;
+      abar(0.05 + 0.35 * done / starts.length);
+      say("Listening to the video… " + Math.round(100 * done / starts.length) + "%");
     }
-    abar(0.05 + 0.3 * Math.min(1, (t + CH) / dur));
-    await breathe();
-  }
+  };
+  const conc = Math.max(2, Math.min(6, navigator.hardwareConcurrency || 4));
+  await Promise.all(Array.from({ length: Math.min(conc, starts.length) }, worker));
+  if (failed) throw failed;
   return db;
 }
 
