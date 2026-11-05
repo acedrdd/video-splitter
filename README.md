@@ -1,26 +1,50 @@
-<p align="center"><img src="logo.svg" width="112" alt="Video Splitter logo"></p>
+<p align="center"><img src="logo.svg" width="128" alt="Video Splitter logo"></p>
 
-# Video Splitter
+<h1 align="center">Video Splitter</h1>
 
-Cut a long video into equal-length clips, right in your browser or on your phone. Nothing is uploaded: your video never leaves your device.
+<p align="center">Cut long videos into clips, by length or automatically.<br>Free, private, and it runs entirely on your device.</p>
 
-Splitting is lossless (no re-encoding), so it is fast and keeps full quality. It uses a small built-in MP4/MOV cutter written in plain JavaScript (no ffmpeg, no downloads), which copies the video and audio samples between keyframes without re-encoding. The Auto clip tab finds standout moments from the audio (pauses and energy) and cuts them the same way.
+---
+
+## What it does
+
+**Quick split** cuts a video into equal clips. Pick a length, check the preview, tap **Split video**.
+
+**Auto clip** finds the standout moments in a long video for you. It listens for natural pauses, builds 20 to 60 second candidates that start and end on a pause, scores them by energy and delivery, and cuts the best ones.
+
+Nothing is uploaded. No account, no API key, no ads.
 
 ## Features
 
-- Split a video into clips of any length (quick buttons for 10, 13, 15, 20 and 30 minutes)
-- Live film-strip preview showing where each cut will land
-- Automatically merges a tiny leftover last clip into the clip before it
-- Download each clip on its own, or all at once
-- Light and dark mode with a toggle button
-- Works as a website (GitHub Pages) and as an Android APK
-- The APK works offline and saves clips to `Documents/VideoSplitter`
+- Split into clips of any length, with quick buttons for 10, 13, 15, 20 and 30 minutes
+- Live film-strip preview that shows where each cut will land
+- Merges a tiny leftover last clip into the clip before it (you choose how short counts as tiny)
+- Auto clip: finds up to 15 standout moments by itself
+- Lossless cuts: no re-encoding, so it is instant and keeps full quality
+- Download clips one by one, or all at once
+- Light and dark mode
+- Works as a website and as an Android app
+- The Android app works offline and saves clips to `Documents/VideoSplitter`
 
-## Use it
+## How to use it
 
-**Website:** open your GitHub Pages link, choose a video, set the clip length, and tap **Split video**.
+1. Open the site or the app and choose a video.
+2. **Quick split:** set the clip length and tap **Split video**.
+3. **Auto clip:** switch to the **Auto clip** tab and tap **Find and cut clips**.
+4. Download the clips you want.
 
-**Android APK:** open the **Actions** tab, open the latest run, and download `VideoSplitter-apk` from **Artifacts**. Unzip it and install `app-debug.apk`. Android will ask you to allow installs from unknown sources, because this is a debug build.
+**Android app:** open the **Actions** tab, open the latest run, and download `VideoSplitter-apk` from **Artifacts**. Unzip it and install `app-debug.apk`. Android will ask you to allow installs from unknown sources, because this is a debug build.
+
+## Good to know
+
+- Works with **MP4 and MOV** videos, which is what phones record. MKV and WebM are not supported.
+- Cuts snap to the nearest keyframe, so a clip can start or end a second or two away from the exact time.
+- Auto clip chooses moments by how the audio sounds (pauses, energy, delivery), not by what is said. Treat its picks as a good first guess and check them.
+- For other formats, ffmpeg does the same job on a computer or in Termux:
+
+```
+ffmpeg -i input.mkv -c copy -f segment -segment_time 1200 -reset_timestamps 1 clip_%03d.mkv
+```
 
 ## Set up your own copy
 
@@ -33,22 +57,12 @@ Splitting is lossless (no re-encoding), so it is fast and keeps full quality. It
 
 | File | What it does |
 | --- | --- |
-| `index.html` | The whole app (page, styles and logic) |
+| `index.html` | The whole app: page, styles and logic |
+| `logo.svg` | The logo |
 | `package.json` | Pulls in Capacitor |
 | `capacitor.config.json` | Android app settings |
 | `.github/workflows/build.yml` | Builds the site, deploys Pages, and builds the APK |
 
-## Limits
-
-- Cuts snap to the nearest keyframe, so clips can be off by a second or two.
-- Works with MP4 and MOV videos (what phones record). Other formats such as MKV or WebM are not supported; for those use ffmpeg in Termux or on a computer:
-
-```
-ffmpeg -i input.mp4 -c copy -f segment -segment_time 1200 -reset_timestamps 1 clip_%03d.mp4
-```
-
-- The APK is a debug build, not signed for the Play Store.
-
 ## Built with
 
-[Capacitor](https://capacitorjs.com), and GitHub Actions.
+[Capacitor](https://capacitorjs.com) and GitHub Actions.

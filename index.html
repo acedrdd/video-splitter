@@ -86,7 +86,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
 <div id="pane-auto" class="os" hidden>
 <p class="sub" style="max-width:none">Finds the standout moments in a long video by itself. It listens for natural pauses, builds 20 to 60 second candidates that start and end on a pause, scores them by energy and delivery, and cuts the best ones. No account, no key, nothing leaves your phone.</p>
 <label class="pick"><input type="file" id="afile" accept="video/*"><span id="afname">Choose a video</span></label>
-<button class="main" id="ago" type="button" disabled style="margin-top:16px">Find and cut clips</button>
+<label class="chk" style="margin-top:16px"><input type="checkbox" id="adeep"> Deep listen (slower, decodes the audio for a finer result)</label>
+<button class="main" id="ago" type="button" disabled>Find and cut clips</button>
 <div class="bar"><i id="afill"></i></div>
 <p id="astatus" role="status" style="min-height:1.5em;margin:10px 0 0;font-size:.92rem;color:var(--mute)"></p>
 <div id="aout" style="margin-top:16px;display:grid;gap:10px"></div>
@@ -322,6 +323,17 @@ const MP4 = (() => {
     const mh = new Uint8Array(hdrLen), mdv = new DataView(mh.buffer);
     if (bigMdat) { mdv.setUint32(0, 1); mh.set(te.encode("mdat"), 4); mdv.setBigUint64(8, BigInt(total + 16)); }
     else { mdv.setUint32(0, total + 8); mh.set(te.encode("mdat"), 4); }
+    if (opts.bytes) {
+      /* read big spans in a few requests (slow storage hates many tiny reads), then assemble in memory */
+      const GAP = 4 * 1048576, spans = [];
+      for (const r of runs) { const l = spans[spans.length - 1]; if (l && r[0] - l.e <= GAP) l.e = r[1]; else spans.push({ s: r[0], e: r[1], runs: [] }); spans[spans.length - 1].runs.push(r); }
+      const head = ftyp.length + moov.length + mh.length, out = new Uint8Array(head + total);
+      out.set(ftyp, 0); out.set(moov, ftyp.length); out.set(mh, ftyp.length + moov.length);
+      const bufs = await Promise.all(spans.map(sp => meta.blob.slice(sp.s, sp.e).arrayBuffer()));
+      let pos = head;
+      spans.forEach((sp, i) => { const u = new Uint8Array(bufs[i]); for (const r of sp.runs) { out.set(u.subarray(r[0] - sp.s, r[1] - sp.s), pos); pos += r[1] - r[0]; } });
+      return { buf: out.buffer, start: tStart, end: tEnd };
+    }
     const parts = [ftyp, moov, mh, ...runs.map(r => meta.blob.slice(r[0], r[1]))];
     return { blob: new Blob(parts, { type: audioOnly ? "audio/mp4" : "video/mp4" }), start: tStart, end: tEnd };
   }
@@ -456,7 +468,21 @@ $("afile").onchange = async e => {
   catch (err) { say(err.message, true); }
 };
 
-async function audioFrames(m, dur){
+/* Fast listen: AAC packets are tiny when it is quiet and big when someone is talking, so the
+   packet sizes already in the file tell us where the pauses and the loud parts are. No decoding. */
+function audioFromSizes(m, dur){
+  const a = m.audio; if (!a || a.n < 50) return null;
+  let sum = 0; for (let i = 0; i < a.n; i++) sum += a.size[i];
+  const mean = sum / a.n; let v = 0; for (let i = 0; i < a.n; i++) v += (a.size[i] - mean) ** 2;
+  if (Math.sqrt(v / a.n) / mean < 0.08) return null;           /* constant bit rate: sizes say nothing */
+  const FR = 0.1, n = Math.ceil(dur / FR) + 2, bytes = new Float64Array(n), has = new Uint8Array(n);
+  for (let i = 0; i < a.n; i++) { const k = Math.floor(a.dts[i] / a.ts / FR); if (k >= 0 && k < n) { bytes[k] += a.size[i]; has[k] = 1; } }
+  const db = new Float32Array(n).fill(-100);
+  for (let k = 0; k < n; k++) if (has[k]) db[k] = 20 * Math.log10(bytes[k] + 1);
+  return db;
+}
+
+async function audioFrames(m, dur, prog){
   if (!m.audio) throw new Error("This video has no audio to listen to.");
   const FR = 0.1, per = 800, CH = 60, n = Math.ceil(dur / FR) + 2, db = new Float32Array(n).fill(-100);
   const Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
@@ -467,19 +493,21 @@ async function audioFrames(m, dur){
     while (!failed && next < starts.length) {
       const t = starts[next++];
       try {
-        const r = await MP4.cut(m, t, Math.min(dur, t + CH), { audioOnly: true });
+        const t1 = performance.now();
+        const r = await MP4.cut(m, t, Math.min(dur, t + CH), { audioOnly: true, bytes: true });
+        const t2 = performance.now(); prog.read += t2 - t1;
         let ab;
-        try { ab = await new Ctx(1, 1, 8000).decodeAudioData(await r.blob.arrayBuffer()); }
+        try { ab = await new Ctx(1, 1, 8000).decodeAudioData(r.buf); }
         catch (_) { throw new Error("Could not read this video's audio format."); }
+        prog.dec += performance.now() - t2;
         const d = ab.getChannelData(0), base = Math.round(t / FR), nf = Math.floor(d.length / per);
         for (let k = 0; k < nf && base + k < n; k++) {
           let s = 0; for (let j = k * per; j < (k + 1) * per; j++) s += d[j] * d[j];
           db[base + k] = 20 * Math.log10(Math.sqrt(s / per) + 1e-6);
         }
       } catch (e) { failed = e; return; }
-      done++;
+      done++; prog.done = done; prog.total = starts.length;
       abar(0.05 + 0.35 * done / starts.length);
-      say("Listening to the video… " + Math.round(100 * done / starts.length) + "%");
     }
   };
   const conc = Math.max(2, Math.min(6, navigator.hardwareConcurrency || 4));
@@ -530,8 +558,15 @@ $("ago").onclick = async () => {
   $("ago").disabled = true; $("aout").innerHTML = ""; $("aall").hidden = true; clips = []; abar(0);
   try {
     const dur = ameta.duration;
-    say("Listening to the video…"); abar(0.05);
-    const db = await audioFrames(ameta, dur);
+    const prog = { done: 0, total: Math.ceil(dur / 60), read: 0, dec: 0 }, t0 = Date.now();
+    let db = $("adeep").checked ? null : audioFromSizes(ameta, dur), how = "fast";
+    if (!db) {
+      how = "deep";
+      const tick = () => say("Listening to the video… " + Math.round(100 * prog.done / prog.total) + "% · " + Math.round((Date.now() - t0) / 1000) + "s");
+      tick(); abar(0.05); const iv = setInterval(tick, 500);
+      try { db = await audioFrames(ameta, dur, prog); } finally { clearInterval(iv); }
+    }
+    const listenS = Math.round((Date.now() - t0) / 1000);
     say("Finding the best moments…"); abar(0.4);
     await breathe();
     const PAD = 0.3;
@@ -545,7 +580,7 @@ $("ago").onclick = async () => {
       addClip($("aout"), "Clip " + (i + 1), tc(r.start) + " to " + tc(r.end) + " · " + mb(r.blob.size), base + " Clip " + (i + 1) + "." + ext, r.blob);
       abar(0.4 + 0.6 * (i + 1) / list.length);
     }
-    say("Done. " + list.length + " clip" + (list.length > 1 ? "s" : "") + " ready.");
+    say("Done. " + list.length + " clip" + (list.length > 1 ? "s" : "") + " ready. (" + (how === "fast" ? "Fast listen" : "Deep listen") + " took " + listenS + "s)");
     $("aall").textContent = NATIVE ? "Save all clips" : "Download all clips"; $("aall").hidden = list.length < 2;
   } catch (e) { console.error(e); say(e.message || String(e), true); }
   $("ago").disabled = false;
