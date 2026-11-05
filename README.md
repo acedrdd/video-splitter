@@ -4,7 +4,7 @@
 
 Cut a long video into equal-length clips, right in your browser or on your phone. Nothing is uploaded: your video never leaves your device.
 
-Splitting is lossless (no re-encoding), so it is fast and keeps full quality. It runs [ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm) locally, using the same `-c copy` segment method as the ffmpeg command line.
+Splitting is lossless (no re-encoding), so it is fast and keeps full quality. It uses a small built-in MP4/MOV cutter written in plain JavaScript (no ffmpeg, no downloads), which copies the video and audio samples between keyframes without re-encoding. The Auto clip tab finds standout moments from the audio (pauses and energy) and cuts them the same way.
 
 ## Features
 
@@ -34,14 +34,14 @@ Splitting is lossless (no re-encoding), so it is fast and keeps full quality. It
 | File | What it does |
 | --- | --- |
 | `index.html` | The whole app (page, styles and logic) |
-| `package.json` | Pulls in ffmpeg.wasm and Capacitor |
+| `package.json` | Pulls in Capacitor |
 | `capacitor.config.json` | Android app settings |
 | `.github/workflows/build.yml` | Builds the site, deploys Pages, and builds the APK |
 
 ## Limits
 
 - Cuts snap to the nearest keyframe, so clips can be off by a second or two.
-- The video is read straight from storage and cut one clip at a time, so memory use stays low. Very large files or very low-RAM phones can still fail. In that case use ffmpeg in Termux or on a computer:
+- Works with MP4 and MOV videos (what phones record). Other formats such as MKV or WebM are not supported; for those use ffmpeg in Termux or on a computer:
 
 ```
 ffmpeg -i input.mp4 -c copy -f segment -segment_time 1200 -reset_timestamps 1 clip_%03d.mp4
@@ -51,4 +51,4 @@ ffmpeg -i input.mp4 -c copy -f segment -segment_time 1200 -reset_timestamps 1 cl
 
 ## Built with
 
-[ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm), [Capacitor](https://capacitorjs.com), and GitHub Actions.
+[Capacitor](https://capacitorjs.com), and GitHub Actions.

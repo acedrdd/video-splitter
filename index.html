@@ -36,7 +36,7 @@ h1{font-size:clamp(2.5rem,12vw,3.6rem);line-height:1;font-weight:800;letter-spac
 .chip{font:inherit;font-weight:600;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:8px 14px;cursor:pointer}
 .chip[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-input[type=number]{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px;width:100%}
+input[type=number],input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px;width:100%}
 .chk{display:flex;gap:10px;align-items:center;font-size:.95rem;margin:4px 0 20px}
 button.main,.dl{font:inherit;font-weight:700;background:var(--acc);color:var(--accink);border:0;border-radius:12px;padding:14px 18px;cursor:pointer}
 #go{width:100%;font-size:1.05rem}
@@ -51,19 +51,22 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .clip small{display:block;color:var(--mute)}
 .dl{padding:9px 16px}
 #all{width:100%;margin-top:10px;background:transparent;color:var(--acc);border:2px solid var(--acc)}
+.tabs{display:flex;gap:8px;margin:0 0 22px}.tabs .chip{flex:1;text-align:center;padding:11px 6px;font-size:.9rem}
+.os p{margin:0 0 14px}.os ol{margin:0 0 18px;padding-left:1.2em;color:var(--mute);font-size:.92rem}.os code{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.85em;word-break:break-all}
+.os a{color:var(--acc)}.os .main{width:100%;margin-top:12px;font-size:1.05rem}
 .note{margin-top:24px;font-size:.85rem;color:var(--mute)}
 </style>
 </head>
 <body>
 <main>
 <div class="top"><h1>Video Splitter</h1><button class="theme" id="theme" type="button"></button></div>
+<div class="tabs" role="tablist"><button class="chip" id="tab-split" type="button" role="tab" aria-pressed="true">Quick split</button><button class="chip" id="tab-auto" type="button" role="tab" aria-pressed="false">Auto clip</button></div>
+
+<div id="pane-split">
 <p class="sub">Cut a long video into equal clips. Everything stays on your device.</p>
-
 <label class="pick"><input type="file" id="file" accept="video/*"><span id="fname">Choose a video</span></label>
-
 <div class="reel"><div id="strip"></div></div>
 <p id="meta">Choose a video to preview the cuts.</p>
-
 <span class="lbl">Clip length in minutes</span>
 <div class="chips" id="chips"></div>
 <div class="row">
@@ -72,29 +75,275 @@ button:disabled{opacity:.45;cursor:not-allowed}
 </div>
 <span class="lbl">The second box sets how many seconds a leftover clip must be under to count as tiny.</span>
 <label class="chk"><input type="checkbox" id="merge" checked> Merge a tiny last clip into the one before it</label>
-
 <button class="main" id="go" disabled>Split video</button>
 <div class="bar"><i id="fill"></i></div>
 <p id="status" role="status"></p>
-
 <div id="out"></div>
 <button class="main" id="all" hidden></button>
+<p class="note">Cuts are lossless, so they are instant and keep full quality. Each cut snaps to the nearest keyframe, so clips can be off by a second or two. Works with MP4 and MOV videos, the format phones record in.</p>
+</div>
 
-<p class="note">Cuts are lossless, so they are fast and keep full quality. Each cut snaps to the nearest keyframe, so clips can be off by a second or two. The video is read straight from storage and cut one clip at a time, so large files should work.</p>
+<div id="pane-auto" class="os" hidden>
+<p class="sub" style="max-width:none">Finds the standout moments in a long video by itself. It listens for natural pauses, builds 20 to 60 second candidates that start and end on a pause, scores them by energy and delivery, and cuts the best ones. No account, no key, nothing leaves your phone.</p>
+<label class="pick"><input type="file" id="afile" accept="video/*"><span id="afname">Choose a video</span></label>
+<button class="main" id="ago" type="button" disabled style="margin-top:16px">Find and cut clips</button>
+<div class="bar"><i id="afill"></i></div>
+<p id="astatus" role="status" style="min-height:1.5em;margin:10px 0 0;font-size:.92rem;color:var(--mute)"></p>
+<div id="aout" style="margin-top:16px;display:grid;gap:10px"></div>
+<button class="main" id="aall" hidden></button>
+<p class="note">This picks moments from how the audio sounds (energy, pauses, delivery), not from what is said, so it is a good first guess rather than a mind reader. Cuts are lossless and can start a second or two early because they snap to a keyframe. Works with MP4 and MOV videos.</p>
+</div>
 </main>
 
 <script>
+/* Lossless MP4/MOV cutter. No ffmpeg, no workers, no wasm. Reads only the bytes it needs. */
+const MP4 = (() => {
+  const td = new TextDecoder(), te = new TextEncoder();
+  const str = (dv, o) => td.decode(new Uint8Array(dv.buffer, dv.byteOffset + o, 4));
+  const bytes = async (blob, a, b) => new Uint8Array(await blob.slice(a, b).arrayBuffer());
+
+  function kids(dv, s, e) {
+    const r = [];
+    while (s + 8 <= e) {
+      let size = dv.getUint32(s), hdr = 8;
+      const type = str(dv, s + 4);
+      if (size === 1) { size = Number(dv.getBigUint64(s + 8)); hdr = 16; }
+      else if (size === 0) size = e - s;
+      if (size < hdr || s + size > e) break;
+      r.push({ type, s, e: s + size, b: s + hdr });
+      s += size;
+    }
+    return r;
+  }
+  const find = (dv, box, type) => kids(dv, box.b, box.e).find(k => k.type === type);
+
+  async function topBoxes(blob) {
+    const out = []; let pos = 0;
+    while (pos + 8 <= blob.size) {
+      const h = await bytes(blob, pos, Math.min(pos + 16, blob.size));
+      const dv = new DataView(h.buffer);
+      let size = dv.getUint32(0), hdr = 8;
+      const type = str(dv, 4);
+      if (size === 1 && h.length >= 16) { size = Number(dv.getBigUint64(8)); hdr = 16; }
+      else if (size === 0) size = blob.size - pos;
+      if (size < hdr) break;
+      out.push({ type, pos, size, hdr });
+      pos += size;
+    }
+    return out;
+  }
+
+  function parseTrak(dv, trak) {
+    const tkhd = find(dv, trak, "tkhd"), mdia = find(dv, trak, "mdia");
+    if (!tkhd || !mdia) return null;
+    const mdhd = find(dv, mdia, "mdhd"), hdlr = find(dv, mdia, "hdlr"), minf = find(dv, mdia, "minf");
+    if (!mdhd || !hdlr || !minf) return null;
+    const stbl = find(dv, minf, "stbl");
+    if (!stbl) return null;
+    const ts = dv.getUint8(mdhd.b) === 1 ? dv.getUint32(mdhd.b + 20) : dv.getUint32(mdhd.b + 12);
+    const handler = str(dv, hdlr.b + 8);
+    const g = t => find(dv, stbl, t);
+    const stsd = g("stsd"), stts = g("stts"), stsz = g("stsz"), stsc = g("stsc"), ctts = g("ctts"), stss = g("stss");
+    const stco = g("stco"), co64 = g("co64");
+    if (!stsd || !stts || !stsz || !stsc || !(stco || co64)) return null;
+
+    let n = dv.getUint32(stsz.b + 8);
+    const size = new Uint32Array(n), fixed = dv.getUint32(stsz.b + 4);
+    for (let i = 0; i < n; i++) size[i] = fixed || dv.getUint32(stsz.b + 12 + i * 4);
+
+    const dts = new Float64Array(n);
+    { let c = dv.getUint32(stts.b + 4), p = stts.b + 8, i = 0, t = 0;
+      for (let k = 0; k < c; k++) { const cnt = dv.getUint32(p), d = dv.getUint32(p + 4); p += 8; for (let j = 0; j < cnt && i < n; j++) { dts[i++] = t; t += d; } }
+      var endDts = t; }
+
+    let cto = null;
+    if (ctts) { cto = new Int32Array(n); const c = dv.getUint32(ctts.b + 4); let p = ctts.b + 8, i = 0;
+      for (let k = 0; k < c; k++) { const cnt = dv.getUint32(p), o = dv.getInt32(p + 4); p += 8; for (let j = 0; j < cnt && i < n; j++) cto[i++] = o; } }
+
+    let sync = null;
+    if (stss) { sync = new Uint8Array(n); const c = dv.getUint32(stss.b + 4); for (let k = 0; k < c; k++) { const s = dv.getUint32(stss.b + 8 + k * 4) - 1; if (s >= 0 && s < n) sync[s] = 1; } }
+
+    const nch = dv.getUint32((stco || co64).b + 4), cho = new Float64Array(nch);
+    for (let i = 0; i < nch; i++) cho[i] = stco ? dv.getUint32(stco.b + 8 + i * 4) : Number(dv.getBigUint64(co64.b + 8 + i * 8));
+    const ec = dv.getUint32(stsc.b + 4), sc = [];
+    for (let k = 0; k < ec; k++) sc.push([dv.getUint32(stsc.b + 8 + k * 12), dv.getUint32(stsc.b + 12 + k * 12)]);
+    const off = new Float64Array(n);
+    { let si = 0;
+      for (let ci = 0; ci < nch && si < n; ci++) {
+        let spc = sc[0][1];
+        for (const e of sc) if (e[0] <= ci + 1) spc = e[1];
+        let o = cho[ci];
+        for (let k = 0; k < spc && si < n; k++) { off[si] = o; o += size[si]; si++; }
+      } }
+    return { trak, tkhd, mdhd, hdlr, minf, stbl, stsd, ts, handler, n, size, dts, cto, sync, off, endDts };
+  }
+
+  async function load(blob) {
+    const tops = await topBoxes(blob);
+    const moovBox = tops.find(b => b.type === "moov");
+    if (!moovBox) throw new Error("This is not a standard MP4 or MOV video (no movie data found).");
+    if (tops.some(b => b.type === "moof")) throw new Error("This MP4 is fragmented and is not supported.");
+    const mb = await bytes(blob, moovBox.pos, moovBox.pos + moovBox.size);
+    const dv = new DataView(mb.buffer);
+    const root = { b: moovBox.hdr, e: mb.length };
+    const mvhd = find(dv, root, "mvhd");
+    if (!mvhd) throw new Error("Could not read this video.");
+    const mts = dv.getUint8(mvhd.b) === 1 ? dv.getUint32(mvhd.b + 20) : dv.getUint32(mvhd.b + 12);
+    const tracks = kids(dv, root.b, root.e).filter(k => k.type === "trak").map(t => parseTrak(dv, t)).filter(Boolean);
+    const video = tracks.find(t => t.handler === "vide"), audio = tracks.find(t => t.handler === "soun");
+    if (!video && !audio) throw new Error("No video or audio found in this file.");
+    const ft = tops.find(b => b.type === "ftyp");
+    const ftyp = ft ? await bytes(blob, ft.pos, ft.pos + ft.size) : null;
+    const duration = Math.max(video ? video.endDts / video.ts : 0, audio ? audio.endDts / audio.ts : 0);
+    return { blob, mb, dv, mvhd, mts, video, audio, ftyp, duration };
+  }
+
+  /* first index with dts >= t (in track timescale units) */
+  function lower(dts, n, t) { let lo = 0, hi = n; while (lo < hi) { const m = (lo + hi) >> 1; if (dts[m] < t) lo = m + 1; else hi = m; } return lo; }
+
+  const w32 = (a, v) => { a.push((v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255); };
+  function box(type, ...parts) {
+    let len = 8; for (const p of parts) len += p.length;
+    const out = new Uint8Array(len), dv = new DataView(out.buffer);
+    dv.setUint32(0, len); out.set(te.encode(type), 4);
+    let o = 8; for (const p of parts) { out.set(p, o); o += p.length; }
+    return out;
+  }
+  const full = (ver, arr) => { const h = new Uint8Array(4 + arr.length); h[0] = ver; h.set(arr, 4); return h; };
+  const u8 = a => Uint8Array.from(a);
+
+  function patchDur(meta, srcBox, kind, dur) {
+    const raw = meta.mb.slice(srcBox.s, srcBox.e), dv = new DataView(raw.buffer);
+    const b = srcBox.b - srcBox.s, v1 = raw[b] === 1;
+    const o = kind === "tkhd" ? (v1 ? b + 28 : b + 20) : (v1 ? b + 24 : b + 16);
+    if (v1) dv.setBigUint64(o, BigInt(Math.round(dur))); else dv.setUint32(o, Math.min(0xffffffff, Math.round(dur)));
+    return raw;
+  }
+
+  function buildTrack(meta, tr, from, to, newOff) {
+    const n = to - from;
+    /* stts */
+    const sttsA = []; let runs = 0, i = from;
+    { let pc = 0, pd = -1; const e = [];
+      for (i = from; i < to; i++) {
+        const d = i + 1 < tr.n ? tr.dts[i + 1] - tr.dts[i] : tr.endDts - tr.dts[i];
+        if (d === pd) pc++; else { if (pc) e.push([pc, pd]); pc = 1; pd = d; }
+      }
+      if (pc) e.push([pc, pd]);
+      w32(sttsA, e.length); for (const [c, d] of e) { w32(sttsA, c); w32(sttsA, d); } runs = e.length; }
+    const stts = box("stts", full(0, u8(sttsA)));
+    let ctts = null;
+    if (tr.cto) {
+      const e = []; let neg = false, pc = 0, po = 0;
+      for (let k = from; k < to; k++) { const o = tr.cto[k]; if (o < 0) neg = true; if (pc && o === po) pc++; else { if (pc) e.push([pc, po]); pc = 1; po = o; } }
+      if (pc) e.push([pc, po]);
+      const a = []; w32(a, e.length); for (const [c, o] of e) { w32(a, c); w32(a, o >>> 0); }
+      ctts = box("ctts", full(neg ? 1 : 0, u8(a)));
+    }
+    let stss = null;
+    if (tr.sync) { const a = [], ix = []; for (let k = from; k < to; k++) if (tr.sync[k]) ix.push(k - from + 1); w32(a, ix.length); for (const x of ix) w32(a, x); stss = box("stss", full(0, u8(a))); }
+    const sc = []; w32(sc, 1); w32(sc, 1); w32(sc, 1); w32(sc, 1);
+    const stsc = box("stsc", full(0, u8(sc)));
+    const sz = new Uint8Array(8 + n * 4), szv = new DataView(sz.buffer);
+    szv.setUint32(0, 0); szv.setUint32(4, n);
+    for (let k = 0; k < n; k++) szv.setUint32(8 + k * 4, tr.size[from + k]);
+    const stsz = box("stsz", full(0, sz));
+    let stco;
+    if (newOff.big) { const a = new Uint8Array(4 + n * 8), v = new DataView(a.buffer); v.setUint32(0, n); for (let k = 0; k < n; k++) v.setBigUint64(4 + k * 8, BigInt(newOff.get(tr, from + k))); stco = box("co64", full(0, a)); }
+    else { const a = new Uint8Array(4 + n * 4), v = new DataView(a.buffer); v.setUint32(0, n); for (let k = 0; k < n; k++) v.setUint32(4 + k * 4, newOff.get(tr, from + k)); stco = box("stco", full(0, a)); }
+    const stblNew = box("stbl", meta.mb.slice(tr.stsd.s, tr.stsd.e), stts, ...(ctts ? [ctts] : []), ...(stss ? [stss] : []), stsc, stsz, stco);
+
+    const mediaDur = (to < tr.n ? tr.dts[to] : tr.endDts) - tr.dts[from];
+    const movieDur = mediaDur * meta.mts / tr.ts;
+    const minfKids = kids(meta.dv, tr.minf.b, tr.minf.e).filter(k => k.type !== "stbl").map(k => meta.mb.slice(k.s, k.e));
+    const minf = box("minf", ...minfKids, stblNew);
+    const mdia = box("mdia", patchDur(meta, tr.mdhd, "mdhd", mediaDur), meta.mb.slice(tr.hdlr.s, tr.hdlr.e), minf);
+    return { trak: box("trak", patchDur(meta, tr.tkhd, "tkhd", movieDur), mdia), movieDur };
+  }
+
+  /* Cut [t0, t1] seconds. Starts on the last keyframe at or before t0. */
+  async function cut(meta, t0, t1, opts = {}) {
+    const { video, audio } = meta;
+    const audioOnly = !!opts.audioOnly || !video;
+    const sel = [];
+    let tStart = t0, tEnd = Math.min(t1, meta.duration);
+    if (!audioOnly) {
+      const v = video;
+      let vs, ve;
+      if (opts.tile) {
+        const near = t => {
+          const list = v._ks || (v._ks = (() => { const a = []; for (let i = 0; i < v.n; i++) if (!v.sync || v.sync[i]) a.push(i); return a; })());
+          let lo = 0, hi = list.length; while (lo < hi) { const m = (lo + hi) >> 1; if (v.dts[list[m]] < t * v.ts) lo = m + 1; else hi = m; }
+          const a = list[Math.max(0, lo - 1)], b = list[Math.min(list.length - 1, lo)];
+          return Math.abs(v.dts[a] - t * v.ts) <= Math.abs(v.dts[b] - t * v.ts) ? a : b;
+        };
+        vs = near(t0); ve = t1 >= meta.duration - 0.05 ? v.n : near(t1);
+        if (ve <= vs) ve = Math.min(v.n, vs + 1);
+      } else {
+        vs = lower(v.dts, v.n, t0 * v.ts + 0.5); if (vs >= v.n || v.dts[vs] > t0 * v.ts + 0.5) vs--;
+        vs = Math.max(0, vs);
+        if (v.sync) while (vs > 0 && !v.sync[vs]) vs--;
+        ve = lower(v.dts, v.n, t1 * v.ts); if (ve <= vs) ve = Math.min(v.n, vs + 1);
+      }
+      tStart = v.dts[vs] / v.ts;
+      tEnd = ve < v.n ? v.dts[ve] / v.ts : v.endDts / v.ts;
+      sel.push({ tr: v, from: vs, to: ve });
+    }
+    if (audio) {
+      const a = audio, as = lower(a.dts, a.n, tStart * a.ts - 0.5), ae = lower(a.dts, a.n, tEnd * a.ts);
+      if (ae > as) sel.push({ tr: a, from: as, to: ae });
+    }
+    if (!sel.length) throw new Error("Nothing to cut in that range.");
+
+    /* samples in original file order, merged into runs */
+    const all = [];
+    for (const s of sel) for (let i = s.from; i < s.to; i++) all.push([s.tr.off[i], s.tr.size[i], s.tr, i]);
+    all.sort((x, y) => x[0] - y[0]);
+    const rel = new Map(); let total = 0; const runs = [];
+    for (const [o, z, tr, i] of all) {
+      if (!rel.has(tr)) rel.set(tr, new Float64Array(tr.n));
+      rel.get(tr)[i] = total;
+      const last = runs[runs.length - 1];
+      if (last && last[1] === o) last[1] += z; else runs.push([o, o + z]);
+      total += z;
+    }
+    const ftyp = meta.ftyp || box("ftyp", te.encode("isom"), u8([0, 0, 2, 0]), te.encode("isomiso2mp41"));
+    const bigMdat = total + 8 > 0xfffffff0, hdrLen = bigMdat ? 16 : 8;
+    const mk = base => {
+      const off = { big: base + total > 0xfffffff0, get: (tr, i) => base + rel.get(tr)[i] };
+      const built = sel.map(s => buildTrack(meta, s.tr, s.from, s.to, off));
+      const dur = Math.max(...built.map(b => b.movieDur));
+      return box("moov", patchDur(meta, meta.mvhd, "mvhd", dur), ...built.map(b => b.trak));
+    };
+    const probe = mk(0);
+    const base = ftyp.length + probe.length + hdrLen;
+    const moov = mk(base);
+    const mh = new Uint8Array(hdrLen), mdv = new DataView(mh.buffer);
+    if (bigMdat) { mdv.setUint32(0, 1); mh.set(te.encode("mdat"), 4); mdv.setBigUint64(8, BigInt(total + 16)); }
+    else { mdv.setUint32(0, total + 8); mh.set(te.encode("mdat"), 4); }
+    const parts = [ftyp, moov, mh, ...runs.map(r => meta.blob.slice(r[0], r[1]))];
+    return { blob: new Blob(parts, { type: audioOnly ? "audio/mp4" : "video/mp4" }), start: tStart, end: tEnd };
+  }
+
+  return { load, cut };
+})();
+
 const $ = id => document.getElementById(id);
 const NATIVE = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
-const CDN_JS = "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js";
-const CDN_CORE = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js";
-let onProg = null, ffmpeg = null, file = null, total = 0, clips = [];
+let file = null, meta = null, total = 0, clips = [];
 
-function say(t, err){ const s = $("status"); s.textContent = t; s.className = err ? "err" : ""; }
+function say(t, err){ for (const id of ["status", "astatus"]) { const s = $(id); s.textContent = t; s.className = err ? "err" : ""; if (id === "astatus") s.style.color = err ? "var(--cut)" : "var(--mute)"; } }
 function bar(r){ $("fill").style.width = Math.max(0, Math.min(1, r || 0)) * 100 + "%"; }
+function abar(r){ $("afill").style.width = Math.max(0, Math.min(1, r || 0)) * 100 + "%"; }
 function mb(n){ return (n / 1048576).toFixed(1) + " MB"; }
 function tc(s){ s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), r = String(s % 60).padStart(2, "0"); return h ? h + ":" + String(m).padStart(2, "0") + ":" + r : m + ":" + r; }
-function loadScript(src){ return new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); }); }
+const breathe = () => new Promise(r => setTimeout(r, 0));
+const extOf = f => ((f.name.match(/\.([a-z0-9]+)$/i) || [])[1] || "mp4").toLowerCase();
+const baseOf = f => f.name.replace(/\.[^.]+$/, "");
+async function readMeta(f){
+  try { return await MP4.load(f); }
+  catch (e) { const m = (e && e.message) || "Could not read this video."; throw new Error(/MP4|MOV/.test(m) ? m : m + " This tool works with MP4 and MOV videos."); }
+}
 
 /* Chips */
 [10, 13, 15, 20, 30].forEach(m => {
@@ -116,7 +365,7 @@ function plan(){
 }
 function draw(){
   const st = $("strip"); st.innerHTML = "";
-  document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", String(parseFloat($("mins").value) === +c.dataset.m)));
+  document.querySelectorAll("#chips .chip").forEach(c => c.setAttribute("aria-pressed", String(parseFloat($("mins").value) === +c.dataset.m)));
   const p = plan();
   if (!p) {
     for (let i = 0; i < 6; i++) { const d = document.createElement("i"); d.className = "ph"; d.style.flex = 1; st.appendChild(d); }
@@ -130,64 +379,16 @@ function draw(){
 ["mins", "tiny", "merge"].forEach(id => $(id).addEventListener("input", draw));
 draw();
 
-function duration(blob){
-  return new Promise(res => {
-    const v = document.createElement("video"), u = URL.createObjectURL(blob);
-    v.preload = "metadata";
-    v.onloadedmetadata = () => { URL.revokeObjectURL(u); res(v.duration); };
-    v.onerror = () => { URL.revokeObjectURL(u); res(NaN); };
-    v.src = u;
-  });
-}
-
 $("file").onchange = async e => {
   file = e.target.files[0]; if (!file) return;
-  total = 0; $("go").disabled = false;
+  meta = null; total = 0; $("go").disabled = true;
   $("fname").innerHTML = ""; const n = document.createElement("span"); n.textContent = file.name;
   const s = document.createElement("small"); s.textContent = mb(file.size);
   $("fname").append(n, s);
-  say("");
-  draw();
-  const d = await duration(file);
-  total = isNaN(d) ? 0 : d;
-  if (!total) $("meta").textContent = "Could not read the video length, but you can still split it.";
-  else draw();
+  say(""); draw();
+  try { meta = await readMeta(file); total = meta.duration; $("go").disabled = false; draw(); }
+  catch (err) { $("meta").textContent = "Could not read this video."; say(err.message, true); }
 };
-
-async function engine(){
-  if (ffmpeg) return ffmpeg;
-  const V = "https://cdn.jsdelivr.net/npm/";
-  const L = { lib: V + "@ffmpeg/ffmpeg@0.12.10/dist/umd/", util: V + "@ffmpeg/util@0.12.1/dist/umd/index.js", core: V + "@ffmpeg/core@0.12.6/dist/esm/" };
-  const abs = p => new URL(p, location.href).href;
-  try { await loadScript("vendor/ffmpeg.js"); await loadScript("vendor/util.js"); }
-  catch (e) { await loadScript(L.lib + "ffmpeg.js"); await loadScript(L.util); }
-  const { toBlobURL } = FFmpegUtil;
-  const check = async (url, what) => {
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(what + " not found (" + r.status + ")");
-    const t = r.headers.get("content-type") || "";
-    if (/html/i.test(t)) throw new Error(what + " came back as a web page, not a file");
-  };
-  const tries = [
-    { name: "local", lib: abs("vendor/814.ffmpeg.js"), js: abs("vendor/ffmpeg-core.js"), wasm: abs("vendor/ffmpeg-core.wasm") },
-    { name: "CDN", lib: L.lib + "814.ffmpeg.js", js: L.core + "ffmpeg-core.js", wasm: L.core + "ffmpeg-core.wasm" }
-  ];
-  const errs = [];
-  for (const t of tries) {
-    const ff = new FFmpegWASM.FFmpeg();
-    ff.on("progress", ({ progress }) => { if (onProg) onProg(progress); });
-    try {
-      await check(t.js, "ffmpeg-core.js"); await check(t.wasm, "ffmpeg-core.wasm"); await check(t.lib, "worker file");
-      await ff.load({
-        classWorkerURL: await toBlobURL(t.lib, "text/javascript"),
-        coreURL: await toBlobURL(t.js, "text/javascript"),
-        wasmURL: await toBlobURL(t.wasm, "application/wasm")
-      });
-      ffmpeg = ff; return ffmpeg;
-    } catch (e) { errs.push(t.name + ": " + (e.message || e)); try { ff.terminate(); } catch (_) {} }
-  }
-  throw new Error(errs.join(" | "));
-}
 
 /* Saving */
 async function saveNative(name, blob){
@@ -209,66 +410,135 @@ async function saveClip(c){
     }
   } catch (e) { c.btn.disabled = false; c.btn.textContent = "Save"; say("Could not save: " + (e.message || e), true); }
 }
+function addClip(container, label, sub, name, blob){
+  const btn = document.createElement("button");
+  btn.className = "dl"; btn.textContent = NATIVE ? "Save" : "Download";
+  const c = { name, blob, btn };
+  btn.onclick = () => saveClip(c);
+  clips.push(c);
+  const row = document.createElement("div"); row.className = "clip";
+  const t = document.createElement("span"); t.textContent = label;
+  const sm = document.createElement("small"); sm.textContent = sub; t.appendChild(sm);
+  row.append(t, btn); container.appendChild(row);
+}
+const saveAll = async () => { for (const c of clips) { await saveClip(c); if (!NATIVE) await new Promise(r => setTimeout(r, 700)); } };
+$("all").onclick = saveAll; $("aall").onclick = saveAll;
 
-/* Split */
+/* Quick split */
 $("go").onclick = async () => {
+  const p = plan();
+  if (!p || !meta) return say("Choose a video first.", true);
   $("go").disabled = true; $("out").innerHTML = ""; $("all").hidden = true; clips = []; bar(0);
   try {
-    const secs = Math.round(parseFloat($("mins").value) * 60);
-    if (!(secs > 0)) throw new Error("Enter a clip length in minutes.");
-    if (!ffmpeg) say("Loading the video engine…");
-    const ff = await engine();
-    const ext = ((file.name.match(/\.([a-z0-9]+)$/i) || [])[1] || "mp4").toLowerCase();
-    const base = file.name.replace(/\.[^.]+$/, "");
-    const type = file.type || "video/mp4";
-    const p = plan();
-    if (!p) throw new Error("Could not read the video length, so the cuts cannot be planned. Try another video file.");
-
-    /* Read the video straight from storage instead of copying it into memory */
-    try { await ff.createDir("/in"); } catch (_) {}
-    try { await ff.unmount("/in"); } catch (_) {}
-    await ff.mount("WORKERFS", { files: [file] }, "/in");
-    const src = "/in/" + file.name, n = p.a.length;
+    const ext = extOf(file), base = baseOf(file), n = p.a.length;
     let start = 0;
-
-    /* Cut one clip at a time so only one clip is ever in memory */
     for (let i = 0; i < n; i++) {
       say("Cutting clip " + (i + 1) + " of " + n + "…");
-      onProg = r => bar((i + Math.max(0, Math.min(1, r || 0))) / n);
-      const out = "c." + ext, args = ["-ss", String(start), "-i", src];
-      if (i < n - 1) args.push("-t", String(p.a[i]));
-      args.push("-c", "copy", "-map", "0", "-avoid_negative_ts", "make_zero", "-y", out);
-      if (await ff.exec(args) !== 0) throw new Error("ffmpeg could not cut clip " + (i + 1) + ".");
-      const blob = new Blob([await ff.readFile(out)], { type });
-      await ff.deleteFile(out);
+      await breathe();
+      const r = await MP4.cut(meta, start, start + p.a[i], { tile: true });
       start += p.a[i];
-      const btn = document.createElement("button");
-      btn.className = "dl"; btn.textContent = NATIVE ? "Save" : "Download";
-      const c = { name: base + " Part " + (i + 1) + "." + ext, blob, btn };
-      btn.onclick = () => saveClip(c);
-      clips.push(c);
-      const row = document.createElement("div"); row.className = "clip";
-      const t = document.createElement("span"); t.textContent = "Part " + (i + 1);
-      const sm = document.createElement("small"); sm.textContent = mb(blob.size); t.appendChild(sm);
-      row.append(t, btn); $("out").appendChild(row);
+      addClip($("out"), "Part " + (i + 1), mb(r.blob.size), base + " Part " + (i + 1) + "." + ext, r.blob);
+      bar((i + 1) / n);
     }
-    onProg = null;
-    try { await ff.unmount("/in"); } catch (_) {}
-    const names = clips;
+    say("Done. " + n + " clip" + (n > 1 ? "s" : "") + " ready.");
+    if (n > 1) { $("all").textContent = NATIVE ? "Save all clips" : "Download all clips"; $("all").hidden = false; }
+  } catch (e) { console.error(e); say(e.message || String(e), true); }
+  $("go").disabled = false;
+};
 
-    bar(1);
-    say("Done. " + names.length + " clip" + (names.length > 1 ? "s" : "") + " ready.");
-    if (names.length > 1) { $("all").textContent = NATIVE ? "Save all clips" : "Download all clips"; $("all").hidden = false; }
-  } catch (e) {
-    say(e.message || String(e), true);
-  } finally {
-    $("go").disabled = false;
+/* Auto clip */
+let ameta = null, afile = null;
+$("afile").onchange = async e => {
+  afile = e.target.files[0]; if (!afile) return;
+  ameta = null; $("ago").disabled = true; $("afname").textContent = afile.name + " (" + mb(afile.size) + ")"; say("");
+  try { ameta = await readMeta(afile); $("ago").disabled = false; }
+  catch (err) { say(err.message, true); }
+};
+
+async function audioFrames(m, dur){
+  if (!m.audio) throw new Error("This video has no audio to listen to.");
+  const FR = 0.1, per = 800, CH = 120, n = Math.ceil(dur / FR) + 2, db = new Float32Array(n).fill(-100);
+  const Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!Ctx) throw new Error("This browser cannot decode audio.");
+  for (let t = 0; t < dur; t += CH) {
+    const r = await MP4.cut(m, t, Math.min(dur, t + CH), { audioOnly: true });
+    let ab;
+    try { ab = await new Ctx(1, 1, 8000).decodeAudioData(await r.blob.arrayBuffer()); }
+    catch (_) { throw new Error("Could not read this video's audio format."); }
+    const d = ab.getChannelData(0), base = Math.round(t / FR), nf = Math.floor(d.length / per);
+    for (let k = 0; k < nf && base + k < n; k++) {
+      let s = 0; for (let j = k * per; j < (k + 1) * per; j++) s += d[j] * d[j];
+      db[base + k] = 20 * Math.log10(Math.sqrt(s / per) + 1e-6);
+    }
+    abar(0.05 + 0.3 * Math.min(1, (t + CH) / dur));
+    await breathe();
   }
+  return db;
+}
+
+function findMoments(db, dur){
+  const FR = 0.1, n = db.length;
+  const sorted = Array.from(db.subarray(0, Math.min(n, Math.ceil(dur / FR)))).sort((a, b) => a - b);
+  const lo = sorted[Math.floor(sorted.length * 0.1)], hi = sorted[Math.floor(sorted.length * 0.9)];
+  const thr = hi - lo >= 12 ? lo + 0.35 * (hi - lo) : -Infinity;
+  const sp = Array.from(db, v => v > thr);
+  let B = [0], run = 0;
+  for (let i = 0; i <= n; i++) {
+    if (i < n && !sp[i]) run++;
+    else { if (run >= 5) B.push((i - run / 2) * FR); run = 0; }
+  }
+  B.push(dur);
+  if (B.length < 8) { B = []; for (let t = 0; t <= dur; t += 5) B.push(t); }
+  const P = new Float64Array(n + 1), Q = new Float64Array(n + 1), S = new Float64Array(n + 1);
+  for (let i = 0; i < n; i++) { const v = sp[i] ? db[i] : 0; P[i + 1] = P[i] + v; Q[i + 1] = Q[i] + v * v; S[i + 1] = S[i] + (sp[i] ? 1 : 0); }
+  const idx = t => Math.max(0, Math.min(n, Math.round(t / FR)));
+  const stat = (a, b) => { const A = idx(a), Bi = idx(b), c = S[Bi] - S[A]; if (c < 5) return null; const m = (P[Bi] - P[A]) / c; return { m, sd: Math.sqrt(Math.max(0, (Q[Bi] - Q[A]) / c - m * m)), d: c / (Bi - A) }; };
+  const g = stat(0, dur) || { m: -30, sd: 5, d: 0.5 };
+  const cands = [];
+  for (let i = 0; i < B.length; i++) for (let j = i + 1; j < B.length; j++) {
+    const len = B[j] - B[i];
+    if (len > 60) break;
+    if (len < 20) continue;
+    const w = stat(B[i], B[j]), hook = stat(B[i], B[i] + 5);
+    if (!w) continue;
+    const score = (w.m - g.m) / 6 + w.sd / 6 + w.d + (hook ? (hook.m - g.m) / 6 : 0) * 0.7 + (len > 45 ? -0.15 : 0);
+    cands.push({ s: B[i], e: Math.min(B[j], dur), score });
+  }
+  cands.sort((a, b) => b.score - a.score);
+  const want = Math.min(15, Math.max(3, Math.floor(dur / 240))), pick = [];
+  for (const c of cands) {
+    if (pick.length >= want) break;
+    if (pick.every(p => c.e <= p.s - 2 || c.s >= p.e + 2)) pick.push(c);
+  }
+  return pick.sort((a, b) => a.s - b.s);
+}
+
+$("ago").onclick = async () => {
+  if (!ameta) return say("Choose a video first.", true);
+  $("ago").disabled = true; $("aout").innerHTML = ""; $("aall").hidden = true; clips = []; abar(0);
+  try {
+    const dur = ameta.duration;
+    say("Listening to the video…"); abar(0.05);
+    const db = await audioFrames(ameta, dur);
+    say("Finding the best moments…"); abar(0.4);
+    await breathe();
+    const PAD = 0.3;
+    const list = findMoments(db, dur).map(c => ({ s: Math.max(0, c.s - PAD), e: Math.min(dur, c.e + PAD) }));
+    if (!list.length) throw new Error("Could not find any clips in this video.");
+    const ext = extOf(afile), base = baseOf(afile);
+    for (let i = 0; i < list.length; i++) {
+      say("Cutting clip " + (i + 1) + " of " + list.length + "…");
+      await breathe();
+      const c = list[i], r = await MP4.cut(ameta, c.s, c.e);
+      addClip($("aout"), "Clip " + (i + 1), tc(r.start) + " to " + tc(r.end) + " · " + mb(r.blob.size), base + " Clip " + (i + 1) + "." + ext, r.blob);
+      abar(0.4 + 0.6 * (i + 1) / list.length);
+    }
+    say("Done. " + list.length + " clip" + (list.length > 1 ? "s" : "") + " ready.");
+    $("aall").textContent = NATIVE ? "Save all clips" : "Download all clips"; $("aall").hidden = list.length < 2;
+  } catch (e) { console.error(e); say(e.message || String(e), true); }
+  $("ago").disabled = false;
 };
 
-$("all").onclick = async () => {
-  for (const c of clips) { await saveClip(c); if (!NATIVE) await new Promise(r => setTimeout(r, 700)); }
-};
 /* Theme */
 const root = document.documentElement;
 function curTheme(){ return root.dataset.theme || (matchMedia("(prefers-color-scheme:dark)").matches ? "dark" : "light"); }
@@ -283,6 +553,16 @@ let savedTheme = null;
 try { savedTheme = localStorage.getItem("theme"); } catch (e) {}
 setTheme(savedTheme || curTheme(), false);
 $("theme").onclick = () => setTheme(curTheme() === "dark" ? "light" : "dark", true);
+
+/* Mode menu */
+function store(k, v){ try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (_) {} return null; }
+function mode(m){
+  for (const k of ["split", "auto"]) { $("pane-" + k).hidden = k !== m; $("tab-" + k).setAttribute("aria-pressed", String(k === m)); }
+  store("mode", m);
+}
+$("tab-split").onclick = () => mode("split");
+$("tab-auto").onclick = () => mode("auto");
+mode(store("mode") === "auto" ? "auto" : "split");
 </script>
 </body>
 </html>
