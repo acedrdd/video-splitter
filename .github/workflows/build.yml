@@ -23,14 +23,11 @@ jobs:
         with:
           node-version: 20
       - run: npm install
-      - name: Assemble www (page + offline ffmpeg files)
+      - name: Assemble www
         run: |
-          mkdir -p www/vendor
+          mkdir -p www
           cp index.html www/
           cp logo.svg www/
-          cp node_modules/@ffmpeg/ffmpeg/dist/umd/ffmpeg.js node_modules/@ffmpeg/ffmpeg/dist/umd/814.ffmpeg.js www/vendor/
-          cp node_modules/@ffmpeg/util/dist/umd/index.js www/vendor/util.js
-          cp node_modules/@ffmpeg/core/dist/esm/ffmpeg-core.js node_modules/@ffmpeg/core/dist/esm/ffmpeg-core.wasm www/vendor/
       - uses: actions/upload-artifact@v4
         with:
           name: www
